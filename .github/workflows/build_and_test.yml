@@ -21,7 +21,7 @@ jobs:
     - name: Build
       run: dotnet build RudderAnalytics/RudderAnalytics.csproj --configuration Release --no-restore
   build_and_test_netcoreapp21:
-    name: Build and Unit Test Check for the Test.csproj
+    name: Build and Quality Check for .NetCoreApp2.1
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
@@ -36,7 +36,7 @@ jobs:
     - name: Test      
       run: dotnet test Test/Test.csproj --no-restore --verbosity normal
   build_and_test_netstandard20:
-    name: Build and Unit Test Check for the Test.NetStandard20.csproj
+    name: Build and Quality Check for .NetStandard20
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
@@ -51,7 +51,7 @@ jobs:
     - name: Test      
       run: dotnet test Test.NetStandard20/Test.NetStandard20.csproj --no-restore --verbosity normal
   build_and_test_net50:
-    name: Build and Unit Test Check for the Test.Net50.csproj
+    name: Build and Quality Check for .Net50
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
@@ -66,8 +66,8 @@ jobs:
     - name: Test      
       run: dotnet test Test.Net50/Test.Net50.csproj --no-restore --verbosity normal
   build_and_test_net35:
-    name: Build and Unit Test Check for the Test.Net35.csproj
-    runs-on: windows-2019
+    name: Build and Quality Check for .Net35
+    runs-on: ubuntu-latest
     container: 
       image: mono:latest
     steps:
@@ -88,8 +88,8 @@ jobs:
       run: mono --debug ./packages/NUnit.ConsoleRunner.3.16.0/tools/nunit3-console.exe Test.Net35/bin/Release/Test.Net35.dll
 
   build_and_test_net45:
-    name: Build and Unit Test Check for the Test.Net45.csproj
-    runs-on: windows-2019
+    name: Build and Quality Check for .Net45
+    runs-on: ubuntu-latest
     container: 
       image: mono:latest
     steps:
