@@ -5,8 +5,7 @@ on:
     branches: [ main, develop ]
     paths-ignore:
     - 'README.md'
-env:
-  DOTNET_VERSION: '6.0.x'
+
 jobs:
   build:
     name: Build Check for the .NET SDK
@@ -16,7 +15,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0
+        dotnet-version: 5.0.17
     - name: Install dependencies
       run: dotnet restore RudderAnalytics/RudderAnalytics.csproj
     - name: Build
