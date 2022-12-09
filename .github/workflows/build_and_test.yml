@@ -1,0 +1,23 @@
+name: build and test
+on:
+  push:
+  pull_request:
+    branches: [ main, develop ]
+    paths-ignore:
+    - 'README.md'
+env:
+  DOTNET_VERSION: '6.0.x'
+jobs:
+  build:
+    name: Build Check for the .NET SDK
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0
+    - name: Install dependencies
+      run: dotnet restore RudderAnalytics/RudderAnalytics.csproj
+    - name: Build
+      run: dotnet build RudderAnalytics/RudderAnalytics.csproj --configuration Release --no-restore
