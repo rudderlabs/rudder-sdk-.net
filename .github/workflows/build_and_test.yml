@@ -7,7 +7,7 @@ on:
     - 'README.md'
 
 jobs:
-  build:
+  build_sdk:
     name: Build Check for the .NET SDK
     runs-on: windows-2019
     steps:
@@ -20,3 +20,19 @@ jobs:
       run: dotnet restore RudderAnalytics/RudderAnalytics.csproj
     - name: Build
       run: dotnet build RudderAnalytics/RudderAnalytics.csproj --configuration Release --no-restore
+  build_and_test:
+    name: Build and Unit Test Check for the Test.csproj
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 2.1.x
+    - name: Install dependencies
+      run: dotnet restore Test/Test.csproj
+    - name: Build
+      run: dotnet build Test/Test.csproj --configuration Release --no-restore
+    - name: Test      
+      run: dotnet test Test/Test.csproj --no-build --verbosity normal
+  
