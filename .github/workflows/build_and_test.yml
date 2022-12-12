@@ -107,4 +107,4 @@ jobs:
         msbuild Test.Net45/Test.Net45.csproj /t:restore
         msbuild Test.Net45/Test.Net45.csproj /p:Configuration=Release
     - name: Test
-      run: mono --debug ./packages/NUnit.ConsoleRunner.3.16.0/tools/nunit3-console.exe Test.Net45/bin/Release/Test.Net45.dll 
+      run: mono --debug ./packages/NUnit.ConsoleRunner.3.16.0/tools/nunit3-console.exe Test.Net45/bin/Release/Test.Net45.exe 
