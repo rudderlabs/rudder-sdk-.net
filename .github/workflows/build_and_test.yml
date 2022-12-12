@@ -89,22 +89,24 @@ jobs:
 
   build_and_test_net45:
     name: Build and Quality Check for .Net45
-    runs-on: windows-latest
-    # container: 
-    #   image: mono:latest
+    runs-on: ubuntu-latest
+    container: 
+      image: mono:latest
     steps:
     - uses: actions/checkout@v2
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1
-    - name: Setup NuGet
-      uses: NuGet/setup-nuget@v1.0.5
-    - name: setup-msbuild
-      uses: microsoft/setup-msbuild@v1.1
+    # - name: Setup MSBuild
+    #   uses: microsoft/setup-msbuild@v1
+    # - name: Setup NuGet
+    #   uses: NuGet/setup-nuget@v1.0.5
     - name: Restore Packages
       run: nuget restore Test.Net45/Test.Net45.csproj -SolutionDirectory ./
     - name: Build 
       run: | 
         msbuild Test.Net45/Test.Net45.csproj /t:restore
         msbuild Test.Net45/Test.Net45.csproj /p:Configuration=Release
+    - name: List the contents of release
+      run: ls -l Test.Net45/bin/Release
+    - name: Check dotnet runtime
+      run : dotnet --list-runtimes
     - name: Test
       run: ./packages/NUnit.ConsoleRunner.3.16.0/tools/nunit3-console.exe Test.Net45/bin/Release/Test.Net45.exe 
