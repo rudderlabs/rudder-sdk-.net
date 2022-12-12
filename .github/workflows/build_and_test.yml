@@ -88,8 +88,6 @@ jobs:
   build_and_test_net45:
     name: Build and Quality Check for .Net45
     runs-on: windows-2019
-    container: 
-      image: mono:latest
     steps:
     - uses: actions/checkout@v2
     - name: Setup MSBuild
