@@ -67,15 +67,17 @@ jobs:
       run: dotnet test Test.Net50/Test.Net50.csproj --no-restore --verbosity normal
   build_and_test_net35:
     name: Build and Quality Check for .Net35
-    runs-on: windows-2019
+    runs-on: ubuntu-latest
+    container:
+      image: mono:latest
     steps:
     - uses: actions/checkout@v2
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1
-    - name: Setup NuGet
-      uses: NuGet/setup-nuget@v1.0.5
-    - name: setup-msbuild
-      uses: microsoft/setup-msbuild@v1.1
+    # - name: Setup MSBuild
+    #   uses: microsoft/setup-msbuild@v1
+    # - name: Setup NuGet
+    #   uses: NuGet/setup-nuget@v1.0.5
+    # - name: setup-msbuild
+    #   uses: microsoft/setup-msbuild@v1.1
     - name: Restore Packages
       run: nuget restore Test.Net35/Test.Net35.csproj -SolutionDirectory ./
     - name: Build
@@ -83,7 +85,7 @@ jobs:
         msbuild Test.Net35/Test.Net35.csproj /t:restore
         msbuild Test.Net35/Test.Net35.csproj /p:Configuration=Release
     - name: Test
-      run: ./packages/NUnit.ConsoleRunner.3.16.0/tools/nunit3-console.exe Test.Net35/bin/Release/Test.Net35.exe
+      run: mono --debug ./packages/NUnit.ConsoleRunner.3.16.0/tools/nunit3-console.exe Test.Net35/bin/Release/Test.Net35.dll
 
   build_and_test_net45:
     name: Build and Quality Check for .Net45
