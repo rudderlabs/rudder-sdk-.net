@@ -74,10 +74,8 @@ jobs:
       uses: microsoft/setup-msbuild@v1.1
     - name: Setup NuGet
       uses: NuGet/setup-nuget@v1.0.5
-    - name: List dotnet run times
-      run: |
-        dotnet --list-sdks
-        dotnet --list-runtimes
+    - name: Setup VSTest.console.exe
+      uses: darenm/Setup-VSTest@v1.2
     - name: Restore Packages
       run: nuget restore Test.Net35/Test.Net35.csproj -SolutionDirectory ./
     - name: Build
@@ -85,19 +83,19 @@ jobs:
         msbuild Test.Net35/Test.Net35.csproj /t:restore
         msbuild Test.Net35/Test.Net35.csproj /p:Configuration=Release
     - name: Test
-      run: ./packages/NUnit.ConsoleRunner.3.16.0/tools/nunit3-console.exe Test.Net35/bin/Release/Test.Net35.dll
+      run: vstest.console.exe Test.Net35/bin/Release/Test.Net35.dll
 
   build_and_test_net45:
     name: Build and Quality Check for .Net45
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1
-    - name: Setup NuGet
-      uses: NuGet/setup-nuget@v1.0.5
     - name: setup-msbuild
       uses: microsoft/setup-msbuild@v1.1
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1.0.5
+    - name: Setup VSTest.console.exe
+      uses: darenm/Setup-VSTest@v1.2 
     - name: Restore Packages
       run: nuget restore Test.Net45/Test.Net45.csproj -SolutionDirectory ./
     - name: Build 
@@ -105,4 +103,4 @@ jobs:
         msbuild Test.Net45/Test.Net45.csproj /t:restore
         msbuild Test.Net45/Test.Net45.csproj /p:Configuration=Release
     - name: Test
-      run: ./packages/NUnit.ConsoleRunner.3.16.0/tools/nunit3-console.exe Test.Net45/bin/Release/Test.Net45.exe 
+      run: vstest.console.exe Test.Net45/bin/Release/Test.Net45.dll 
