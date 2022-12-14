@@ -102,5 +102,7 @@ jobs:
       run: | 
         msbuild Test.Net45/Test.Net45.csproj /t:restore
         msbuild Test.Net45/Test.Net45.csproj /p:Configuration=Release
+    - name: List contents of bin folder
+      run: ls Test.Net45/bin/Release
     - name: Test
-      run: vstest.console.exe Test.Net45/bin/Release/Test.Net45.dll 
+      run: vstest.console.exe Test.Net45/bin/Release/Test.Net45.dll /TestAdapterPath:"Test.Net45/bin/Release"
