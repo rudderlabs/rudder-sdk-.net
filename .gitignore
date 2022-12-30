@@ -116,5 +116,7 @@ UpgradeLog*
 **sublime**
 
 .DS_STORE
+.DS_Store
 /.vs
 /.vscode
+.idea
