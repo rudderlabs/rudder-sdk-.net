@@ -85,7 +85,7 @@ jobs:
       run: dotnet build Test/Test.csproj --configuration Release --no-restore
 
     - name: Execute Unit Test cases and collect data for code coverage      
-      run: dotnet test Test/Test.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory Test/coverage
+      run: dotnet test Test/Test.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
 
     - name: List contents of bin folder
       run: | 
