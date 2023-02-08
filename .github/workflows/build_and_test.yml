@@ -88,7 +88,10 @@ jobs:
       run: dotnet test Test/Test.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory Test/coverage
 
     - name: List contents of bin folder
-      run: ls Test/coverage
+      run: | 
+         ls
+         ls Test
+         ls Test/coverage
 
     - name: Install the Report Generator tool
       run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 4.8.7
@@ -153,7 +156,7 @@ jobs:
       run: dotnet tool install -g dotnet-reportgenerator-globaltool
     
     - name: Generate the Code Coverage Report
-      run: reportgenerator -reports:"./Test.Net50/coverage/*/coverage.cobertura.xml" -targetdir:"./Test.Net50/coveragereport" -reporttypes:"MarkdownSummaryGithub" -title:".Net50"
+      run: reportgenerator -reports:"Test.Net50/coverage/*/coverage.cobertura.xml" -targetdir:"Test.Net50/coveragereport" -reporttypes:"MarkdownSummaryGithub" -title:".Net50"
     
     - name: Write the Code Coverage Report to the Github Summary
       run: cat Test.Net50/coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
