@@ -87,12 +87,6 @@ jobs:
     - name: Execute Unit Test cases and collect data for code coverage      
       run: dotnet test Test/Test.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
 
-    - name: List contents of bin folder
-      run: | 
-         ls
-         ls Test
-         ls Test/coverage
-
     - name: Install the Report Generator tool
       run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 4.8.7
 
@@ -100,10 +94,13 @@ jobs:
       run: reportgenerator help
     
     - name: Generate the Code Coverage Report
-      run: reportgenerator -reports:"Test/coverage/*/coverage.cobertura.xml" -targetdir:"Test/coveragereport" -reporttypes:"MarkdownSummary" -title:".NetCoreApp 2.1"
-    
-    - name: Write the Code Coverage Report to the Github Summary
-      run: cat Test/coveragereport/Summary.md >> $GITHUB_STEP_SUMMARY
+      run: reportgenerator -reports:"Test/coverage/*/coverage.cobertura.xml" -targetdir:"Test/coveragereport" -reporttypes:"HtmlInline" -title:".NetCoreApp 2.1"
+
+    - name: Archive code coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: Code Coverage Report for Test(.netcoreapp2.1)
+          path: Test/coveragereport/index.html
 
 
   build_and_test_netstandard20:
@@ -126,8 +123,23 @@ jobs:
     - name: Build
       run: dotnet build Test.NetStandard20/Test.NetStandard20.csproj --configuration Release --no-restore
 
-    - name: Test      
-      run: dotnet test Test.NetStandard20/Test.NetStandard20.csproj --no-restore --verbosity normal
+    - name: Execute Unit Test cases and collect data for code coverage      
+      run: dotnet test Test.NetStandard20/Test.NetStandard20.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
+    
+    - name: Install the Report Generator tool
+      run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 4.8.7
+
+    - name: Run the Report Generator help
+      run: reportgenerator help
+    
+    - name: Generate the Code Coverage Report
+      run: reportgenerator -reports:"Test.NetStandard20/coverage/*/coverage.cobertura.xml" -targetdir:"Test.NetStandard20/coveragereport" -reporttypes:"HtmlInline" -title:".NetStandard20"
+
+    - name: Archive code coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: Code Coverage Report for Test.NetStandard20
+          path: Test.NetStandard20/coveragereport/index.html
 
   build_and_test_net50:
     name: Build and Quality Check for .Net50
@@ -149,17 +161,20 @@ jobs:
     - name: Build
       run: dotnet build Test.Net50/Test.Net50.csproj --configuration Release --no-restore
 
-    - name: Test      
-      run: dotnet test Test.Net50/Test.Net50.csproj --no-restore --verbosity normal
+    - name: Execute Unit Test cases and collect data for code coverage      
+      run: dotnet test Test/Test.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
     
     - name: Install the Report Generator tool
       run: dotnet tool install -g dotnet-reportgenerator-globaltool
     
     - name: Generate the Code Coverage Report
-      run: reportgenerator -reports:"Test.Net50/coverage/*/coverage.cobertura.xml" -targetdir:"Test.Net50/coveragereport" -reporttypes:"MarkdownSummaryGithub" -title:".Net50"
+      run: reportgenerator -reports:"Test.Net50/coverage/*/coverage.cobertura.xml" -targetdir:"Test.Net50/coveragereport" -reporttypes:"HtmlInline" -title:".Net50"
     
-    - name: Write the Code Coverage Report to the Github Summary
-      run: cat Test.Net50/coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+    - name: Archive code coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: Code Coverage Report for Test.Net50
+          path: Test.Net50/coveragereport/index.html
 
   build_and_test_net35:
     name: Build and Quality Check for .Net35
