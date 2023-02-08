@@ -87,14 +87,20 @@ jobs:
     - name: Execute Unit Test cases and collect data for code coverage      
       run: dotnet test Test/Test.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory Test/coverage
 
+    - name: List contents of bin folder
+      run: ls Test/coverage
+
     - name: Install the Report Generator tool
       run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 4.8.7
+
+    -name: Run the Report Generator help
+      run: reportgenerator help
     
     - name: Generate the Code Coverage Report
-      run: reportgenerator -reports:"./Test/coverage/*/coverage.cobertura.xml" -targetdir:"./Test/coveragereport" -reporttypes:"MarkdownSummaryGithub" -title:".NetCoreApp 2.1"
+      run: reportgenerator -reports:"Test/coverage/*/coverage.cobertura.xml" -targetdir:"Test/coveragereport" -reporttypes:"MarkdownSummary" -title:".NetCoreApp 2.1"
     
     - name: Write the Code Coverage Report to the Github Summary
-      run: cat Test/coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+      run: cat Test/coveragereport/Summary.md >> $GITHUB_STEP_SUMMARY
 
 
   build_and_test_netstandard20:
