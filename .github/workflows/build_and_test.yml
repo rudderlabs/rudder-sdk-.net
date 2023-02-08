@@ -93,7 +93,7 @@ jobs:
     - name: Install the Report Generator tool
       run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 4.8.7
 
-    -name: Run the Report Generator help
+    - name: Run the Report Generator help
       run: reportgenerator help
     
     - name: Generate the Code Coverage Report
