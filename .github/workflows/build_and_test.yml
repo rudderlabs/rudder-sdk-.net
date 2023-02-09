@@ -237,12 +237,6 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: setup-msbuild
-      uses: microsoft/setup-msbuild@v1.1
-
-    - name: Setup NuGet
-      uses: NuGet/setup-nuget@v1.0.5
-
     - name: Setup VSTest.console.exe
       uses: darenm/Setup-VSTest@v1.2
     
@@ -251,27 +245,20 @@ jobs:
       with:
         dotnet-version: 5.0.x
     
-      
     - name: Install dotnet-format
       run: dotnet tool install -g dotnet-format
     
     - name: Verify Code Formatting
       run: dotnet format --check --verbosity diagnostic
 
-    - name: Install coverlet.coverage
-      run: dotnet add Test.Net45/Test.Net45.csproj package coverlet.collector --version 3.0.3
-
     - name: Install ReportGenerator
       run: dotnet add Test.Net45/Test.Net45.csproj package ReportGenerator --version 4.8.7  
 
-    - name: Restore Packages
-      run: nuget restore Test.Net45/Test.Net45.csproj -SolutionDirectory ./
+    - name: Install dependencies
+      run: dotnet restore Test.Net45/Test.Net45.csproj
 
-
-    - name: Build 
-      run: | 
-        msbuild Test.Net45/Test.Net45.csproj /t:restore
-        msbuild Test.Net45/Test.Net45.csproj /p:Configuration=Release
+    - name: Build
+      run: dotnet build Test.Net45/Test.Net45.csproj --configuration Release --no-restore
 
     - name: List contents of bin folder
       run: |
