@@ -259,10 +259,10 @@ jobs:
       run: dotnet format --check --verbosity diagnostic
 
     - name: Install coverlet.coverage
-      run: dotnet add package coverlet.collector --version 3.0.3
+      run: dotnet add Test.Net45/Test.Net45.csproj package coverlet.collector --version 3.0.3
 
     - name: Install ReportGenerator
-      run: dotnet add package ReportGenerator --version 4.8.7  
+      run: dotnet add Test.Net45/Test.Net45.csproj package ReportGenerator --version 4.8.7  
 
     - name: Restore Packages
       run: nuget restore Test.Net45/Test.Net45.csproj -SolutionDirectory ./
