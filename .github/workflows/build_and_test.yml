@@ -25,6 +25,9 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
+    
+    - name: Verify Code Formatting
+      run: dotnet format --check --verbosity diagnostic
 
     - name: Install dependencies
       run: dotnet restore RudderAnalytics/RudderAnalytics.csproj
@@ -80,6 +83,9 @@ jobs:
 
     - name: Install dependencies
       run: dotnet restore Test/Test.csproj
+    
+    - name: Verify Code Formatting
+      run: dotnet format --check --verbosity diagnostic
 
     - name: Build
       run: dotnet build Test/Test.csproj --configuration Release --no-restore
@@ -97,7 +103,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: Code Coverage Report for Test(.netcoreapp2.1)
-        path: Test/coveragereport/index.html
+        path: Test/coveragereport/
 
 
   build_and_test_netstandard20:
@@ -117,6 +123,9 @@ jobs:
     - name: Install dependencies
       run: dotnet restore Test.NetStandard20/Test.NetStandard20.csproj
 
+    - name: Verify Code Formatting
+      run: dotnet format --check --verbosity diagnostic
+
     - name: Build
       run: dotnet build Test.NetStandard20/Test.NetStandard20.csproj --configuration Release --no-restore
 
@@ -133,7 +142,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: Code Coverage Report for Test.NetStandard20
-        path: Test.NetStandard20/coveragereport/index.html
+        path: Test.NetStandard20/coveragereport/
 
   build_and_test_net50:
     name: Build and Quality Check for .Net50
@@ -156,7 +165,7 @@ jobs:
       run: dotnet build Test.Net50/Test.Net50.csproj --configuration Release --no-restore
 
     - name: Execute Unit Test cases and collect data for code coverage      
-      run: dotnet test Test/Test.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
+      run: dotnet test Test.Net50/Test.Net50.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
     
     - name: Install the Report Generator tool
       run: dotnet tool install -g dotnet-reportgenerator-globaltool
@@ -168,7 +177,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: Code Coverage Report for Test.Net50
-        path: Test.Net50/coveragereport/index.html
+        path: Test.Net50/coveragereport/
 
   build_and_test_net35:
     name: Build and Quality Check for .Net35
@@ -187,6 +196,11 @@ jobs:
 
     - name: Setup VSTest.console.exe
       uses: darenm/Setup-VSTest@v1.2
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
 
     - name: Restore Packages
       run: nuget restore Test.Net35/Test.Net35.csproj -SolutionDirectory ./
@@ -216,6 +230,11 @@ jobs:
 
     - name: Setup VSTest.console.exe
       uses: darenm/Setup-VSTest@v1.2
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
 
     - name: Restore Packages
       run: nuget restore Test.Net45/Test.Net45.csproj -SolutionDirectory ./
