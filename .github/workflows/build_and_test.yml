@@ -97,7 +97,7 @@ jobs:
       run: dotnet build Test/Test.csproj --configuration Release --no-restore
 
     - name: Execute Unit Test cases and collect data for code coverage      
-      run: dotnet test Test/Test.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
+      run: dotnet test Test/Test.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory Test/coverage
 
     - name: Install the Report Generator tool
       run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 4.8.7
@@ -139,7 +139,7 @@ jobs:
       run: dotnet build Test.NetStandard20/Test.NetStandard20.csproj --configuration Release --no-restore
 
     - name: Execute Unit Test cases and collect data for code coverage      
-      run: dotnet test Test.NetStandard20/Test.NetStandard20.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
+      run: dotnet test Test.NetStandard20/Test.NetStandard20.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory Test.NetStandard20/coverage
     
     - name: Install the Report Generator tool
       run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 4.8.7
@@ -250,9 +250,37 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
+    
+    - name: List contents of bin folder
+      run: | 
+         ls
+         ls Test
+         ls Test/coverage
+         echo ${GITHUB_WORKSPACE}
+         ls packages 
+      
+    - name: Install dotnet-format
+      run: dotnet tool install -g dotnet-format
+    
+    - name: Verify Code Formatting
+      run: dotnet format --check --verbosity diagnostic
+
+    - name: Install coverlet.coverage
+      run: dotnet add package coverlet.collector --version 3.0.3
+
+    - name: Install ReportGenerator
+      run: dotnet add package ReportGenerator --version 4.8.7  
 
     - name: Restore Packages
       run: nuget restore Test.Net45/Test.Net45.csproj -SolutionDirectory ./
+
+    - name: List contents of bin folder
+      run: | 
+         ls
+         ls Test
+         ls Test/coverage
+         echo ${GITHUB_WORKSPACE}
+         ls packages
 
     - name: Build 
       run: | 
