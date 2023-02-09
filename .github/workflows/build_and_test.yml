@@ -26,6 +26,9 @@ jobs:
       with:
         dotnet-version: 5.0.x
     
+    - name: Install dotnet-format
+      run: dotnet tool install -g dotnet-format
+    
     - name: Verify Code Formatting
       run: dotnet format --check --verbosity diagnostic
 
@@ -84,6 +87,9 @@ jobs:
     - name: Install dependencies
       run: dotnet restore Test/Test.csproj
     
+    - name: Install dotnet-format
+      run: dotnet tool install -g dotnet-format
+    
     - name: Verify Code Formatting
       run: dotnet format --check --verbosity diagnostic
 
@@ -123,6 +129,9 @@ jobs:
     - name: Install dependencies
       run: dotnet restore Test.NetStandard20/Test.NetStandard20.csproj
 
+    - name: Install dotnet-format
+      run: dotnet tool install -g dotnet-format
+    
     - name: Verify Code Formatting
       run: dotnet format --check --verbosity diagnostic
 
@@ -157,6 +166,12 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
+    
+    - name: Install dotnet-format
+      run: dotnet tool install -g dotnet-format
+    
+    - name: Verify Code Formatting
+      run: dotnet format --check --verbosity diagnostic
 
     - name: Install dependencies
       run: dotnet restore Test.Net50/Test.Net50.csproj
@@ -165,7 +180,7 @@ jobs:
       run: dotnet build Test.Net50/Test.Net50.csproj --configuration Release --no-restore
 
     - name: Execute Unit Test cases and collect data for code coverage      
-      run: dotnet test Test.Net50/Test.Net50.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
+      run: dotnet test Test.Net50/Test.Net50.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory Test.Net50/coverage
     
     - name: Install the Report Generator tool
       run: dotnet tool install -g dotnet-reportgenerator-globaltool
