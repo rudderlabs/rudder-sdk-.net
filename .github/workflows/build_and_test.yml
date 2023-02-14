@@ -96,21 +96,8 @@ jobs:
     - name: Build
       run: dotnet build Test/Test.csproj --configuration Release --no-restore
 
-    - name: Execute Unit Test cases and collect data for code coverage      
-      run: dotnet test Test/Test.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
-
-    - name: Install the Report Generator tool
-      run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 4.8.7
-    
-    - name: Generate the Code Coverage Report
-      run: reportgenerator -reports:"Test/coverage/*/coverage.cobertura.xml" -targetdir:"Test/coveragereport" -reporttypes:"HtmlInline" -title:".NetCoreApp 2.1"
-
-    - name: Archive code coverage results
-      uses: actions/upload-artifact@v3
-      with:
-        name: Code Coverage Report for Test(.netcoreapp2.1)
-        path: Test/coveragereport/
-
+    - name: Execute Unit Test cases
+      run: dotnet test Test/Test.csproj --no-restore --verbosity normal
 
   build_and_test_netstandard20:
     name: Build and Quality Check for .NetStandard20
@@ -138,20 +125,8 @@ jobs:
     - name: Build
       run: dotnet build Test.NetStandard20/Test.NetStandard20.csproj --configuration Release --no-restore
 
-    - name: Execute Unit Test cases and collect data for code coverage      
-      run: dotnet test Test.NetStandard20/Test.NetStandard20.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
-    
-    - name: Install the Report Generator tool
-      run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 4.8.7
-
-    - name: Generate the Code Coverage Report
-      run: reportgenerator -reports:"Test.NetStandard20/coverage/*/coverage.cobertura.xml" -targetdir:"Test.NetStandard20/coveragereport" -reporttypes:"HtmlInline" -title:".NetStandard20"
-
-    - name: Archive code coverage results
-      uses: actions/upload-artifact@v3
-      with:
-        name: Code Coverage Report for Test.NetStandard20
-        path: Test.NetStandard20/coveragereport/
+    - name: Execute Unit Test cases
+      run: dotnet test Test.NetStandard20/Test.NetStandard20.csproj --no-restore --verbosity normal
 
   build_and_test_net50:
     name: Build and Quality Check for .Net50
@@ -249,23 +224,13 @@ jobs:
       run: dotnet tool install -g dotnet-format
     
     - name: Verify Code Formatting
-      run: dotnet format --check --verbosity diagnostic
-
-    - name: Install ReportGenerator
-      run: dotnet add Test.Net45/Test.Net45.csproj package ReportGenerator --version 4.8.7  
+      run: dotnet format --check --verbosity diagnostic 
 
     - name: Install dependencies
-      run: dotnet restore Test.Net45/Test.Net45.csproj --packages Test.Net45/packages
+      run: dotnet restore Test.Net45/Test.Net45.csproj
 
     - name: Build
       run: dotnet build Test.Net45/Test.Net45.csproj --configuration Release --no-restore
-
-    - name: List contents of bin folder
-      run: |
-        echo ${GITHUB_WORKSPACE}
-        ls
-        ls Test.Net45
-        ls Test.Net45/packages
 
     - name: Test
       run: vstest.console.exe Test.Net45/bin/Release/Test.Net45.dll /TestAdapterPath:"Test.Net45/bin/Release"
