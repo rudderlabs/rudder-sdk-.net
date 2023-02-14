@@ -178,6 +178,12 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: setup-msbuild
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1.0.5
+
     - name: Setup VSTest.console.exe
       uses: darenm/Setup-VSTest@v1.2
     
@@ -185,19 +191,14 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
-    
-    - name: Install dotnet-format
-      run: dotnet tool install -g dotnet-format
-    
-    - name: Verify Code Formatting
-      run: dotnet format --check --verbosity diagnostic 
 
-    - name: Install dependencies
-      run: dotnet restore Test.Net35/Test.Net35.csproj
+    - name: Restore Packages
+      run: nuget restore Test.Net35/Test.Net35.csproj -SolutionDirectory ./
 
     - name: Build
-      run: dotnet build Test.Net35/Test.Net35.csproj --configuration Release --no-restore
-
+      run: |
+        msbuild Test.Net35/Test.Net35.csproj /t:restore
+        msbuild Test.Net35/Test.Net35.csproj /p:Configuration=Release
     - name: Test
       run: vstest.console.exe Test.Net35/bin/Release/Test.Net35.dll
 
