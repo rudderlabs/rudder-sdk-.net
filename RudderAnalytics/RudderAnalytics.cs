@@ -3,7 +3,7 @@ namespace RudderStack
     public class RudderAnalytics
     {
         // REMINDER: don't forget to set Properties.AssemblyInfo.AssemblyVersion as well
-        public static string VERSION = "1.0.1";
+        public static string VERSION = "2.0.0";
 
         /// <summary>
         /// Lock for thread-safety
@@ -44,7 +44,11 @@ namespace RudderStack
             }
         }
 
-        internal static void Initialize(RudderClient client)
+        /// <summary>
+        /// Initialized the default RudderStack client with your Custom Client.
+        /// </summary>
+        /// <param name="client"></param>
+        public static void Initialize(RudderClient client)
         {
             lock (padlock)
             {

@@ -25,7 +25,9 @@ namespace RudderStack
         internal int FlushAt { get; set; }
 
         internal bool Async { get; set; }
-        
+
+        internal bool Gzip { get; set; }
+
         internal TimeSpan Timeout { get; set; }
 
         internal TimeSpan? MaxRetryTime { get; set; }
@@ -47,6 +49,7 @@ namespace RudderStack
         /// <param name="async">Sets whether the flushing to the server is synchronous or asynchronous</param>
         /// <param name="threads">Count of concurrent internal threads to post data from queue</param>
         /// <param name="flushInterval">The frequency, in seconds, to send data to RudderStack</param>
+        /// <param name="gzip">Compress data w/ gzip before dispatch</param>
         /// <param name="send">Send data to RudderStack</param>
         /// <param name="userAgent">Sets User Agent Header</param>
         /// <param name="maxRetryTime">Max Amount of time to retry request when server timeout occurs</param>
@@ -59,6 +62,7 @@ namespace RudderStack
             bool async = true,
             int threads = 1,
             double flushInterval = 10,
+            bool gzip = true,
             bool send = true,
             string userAgent = null,
             TimeSpan? maxRetryTime = null
@@ -71,6 +75,7 @@ namespace RudderStack
             this.FlushAt = flushAt;
             this.Async = async;
             this.FlushIntervalInMillis = (int)(flushInterval * 1000);
+            this.Gzip = gzip;
             this.Send = send;
             this.UserAgent = userAgent ?? GetDefaultUserAgent();
             this.Threads = threads;
@@ -96,6 +101,16 @@ namespace RudderStack
         }
 
         /// <summary>
+        /// Gets the API host server address. Default server is "https://hosted.rudderlabs.com"
+        /// </summary>
+        /// <param name="host">Host server url</param>
+        /// <returns></returns>
+        public string GetHost()
+        {
+            return this.DataPlaneUrl;
+        }
+
+        /// <summary>
         /// Set the proxy server Uri
         /// </summary>
         /// <param name="proxy">Proxy server Uri</param>
@@ -104,6 +119,15 @@ namespace RudderStack
         {
             this.Proxy = proxy;
             return this;
+        }
+
+        /// <summary>
+        /// Get the proxy server Uri
+        /// </summary>
+        /// <returns></returns>
+        public string GetProxy()
+        {
+            return Proxy;
         }
 
         /// <summary>
@@ -118,6 +142,15 @@ namespace RudderStack
         }
 
         /// <summary>
+        /// Gets the maximum amount of timeout on the HTTP request flushes to the server.
+        /// </summary>
+        /// <returns></returns>
+        public TimeSpan GetTimeout()
+        {
+            return Timeout;
+        }
+
+        /// <summary>
         /// Sets the maximum amount of retry time for request to flush to the server when Timeout or error occurs.
         /// </summary>
         /// <param name="timeout"></param>
@@ -129,6 +162,15 @@ namespace RudderStack
         }
 
         /// <summary>
+        /// Gets the maximum amount of retry time for request to flush to the server when Timeout or error occurs.
+        /// </summary>
+        /// <returns></returns>
+        public TimeSpan? GetMaxRetryTime()
+        {
+            return MaxRetryTime;
+        }
+
+        /// <summary>
         /// Sets the maximum amount of items that can be in the queue before no more are accepted.
         /// </summary>
         /// <param name="maxQueueSize"></param>
@@ -137,6 +179,15 @@ namespace RudderStack
         {
             this.MaxQueueSize = maxQueueSize;
             return this;
+        }
+
+        /// <summary>
+        /// Gets the maximum amount of items that can be in the queue before no more are accepted.
+        /// </summary>
+        /// <returns></returns>
+        public int GetMaxQueueSize()
+        {
+            return MaxQueueSize;
         }
 
         /// <summary>
@@ -162,6 +213,15 @@ namespace RudderStack
         }
 
         /// <summary>
+        /// Gets the maximum amount of messages to send per batch
+        /// </summary>
+        /// <returns></returns>
+        public int GetFlushAt()
+        {
+            return FlushAt;
+        }
+
+        /// <summary>
         /// Count of concurrent internal threads to post data from queue
         /// </summary>
         /// <param name="threads"></param>
@@ -170,6 +230,15 @@ namespace RudderStack
         {
             Threads = threads;
             return this;
+        }
+
+        /// <summary>
+        /// Gets Count of concurrent internal threads to post data from queue
+        /// </summary>
+        /// <returns></returns>
+        public int GetThreads()
+        {
+            return Threads;
         }
 
         /// <summary>
@@ -190,10 +259,48 @@ namespace RudderStack
             return this;
         }
 
+        /// <summary>
+        /// Gets whether the flushing to the server is synchronous or asynchronous.
+        /// </summary>
+        /// <returns></returns>
+        public bool GetAsync()
+        {
+            return Async;
+        }
+
+
+        /// <summary>
+        /// Sets the API request header uses GZip option.
+        /// Enable this when the network is the bottleneck for your application (typically in client side applications).
+        /// If useGZip is set, it compresses request content with GZip algorithm
+        /// </summary>
+        /// <param name="gzip">True to compress request header, false for no compression</param>
+        /// <returns></returns>
+        public RudderConfig SetGzip(bool gzip)
+        {
+            this.Gzip = gzip;
+            return this;
+        }
+
+        /// <summary>
+        /// Gets if the API request header uses GZip option.
+        /// If useGZip is set, it compresses request content with GZip algorithm
+        /// </summary>
+        /// <returns></returns>
+        public bool GetGzip()
+        {
+            return Gzip;
+        }
+
         public RudderConfig SetUserAgent(string userAgent)
         {
             this.UserAgent = userAgent;
             return this;
+        }
+
+        public string GetUserAgent()
+        {
+            return UserAgent;
         }
 
         /// <summary>
@@ -208,7 +315,16 @@ namespace RudderStack
         }
 
         /// <summary>
-        /// Set the interval in seconds at which the client should flush events.
+        /// Gets if it Sends data to Rudderstack
+        /// </summary>
+        /// <returns></returns>
+        public bool GetSend()
+        {
+            return Send;
+        }
+
+        /// <summary>
+        /// Set the interval in seconds at which the client should flush events. 
         /// </summary>
         /// <param name="interval"></param>
         /// <returns></returns>
@@ -216,6 +332,15 @@ namespace RudderStack
         {
             this.FlushIntervalInMillis = (int)(interval * 1000);
             return this;
+        }
+
+        /// <summary>
+        /// Get the interval in seconds at which the client should flush events. 
+        /// </summary>
+        /// <returns></returns>
+        public int GetFlushInterval()
+        {
+            return Convert.ToInt32(FlushIntervalInMillis / 1000);
         }
     }
 }

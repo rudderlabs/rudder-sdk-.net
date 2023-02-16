@@ -3,23 +3,28 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using RudderStack;
+using RudderStack.Utils;
 using RudderStack.Test;
 
 namespace RudderStack.Test
 {
     class Program
     {
-        static void Main_Exe(string[] args)
+        static void Main(string[] args)
         {
+            Console.WriteLine("The App is running");
             Logger.Handlers += Logger_Handlers;
 
-            //Analytics.Initialize(RudderStack.Test.Constants.WRITE_KEY);
+            var parentPath = Utilities.getParentPath(4, System.IO.Directory.GetCurrentDirectory());
+            var filePath = parentPath + "\\.env";
+            DotEnv.Load(filePath);
+            var dataPlaneUrl = Environment.GetEnvironmentVariable("DATA_PLANE_URL");
+            var writeKey = Environment.GetEnvironmentVariable("WRITE_KEY");
 
-            //FlushTests tests = new FlushTests();
-            //tests.PerformanceTest().Wait();
-            RudderAnalytics.Initialize("1sCR76JzHpQohjl33pi8qA5jQD2", new RudderConfig(dataPlaneUrl: "https://75652af01e6d.ngrok.io"));
+            RudderAnalytics.Initialize(writeKey, new RudderConfig(dataPlaneUrl: dataPlaneUrl, gzip: true));
             RudderAnalytics.Client.Track("prateek", "Item Purchased");
             RudderAnalytics.Client.Flush();
+
         }
 
         private static void Logger_Handlers(Logger.Level level, string message, IDictionary<string, object> args)

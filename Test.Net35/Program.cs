@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-
+using RudderStack.Utils;
 namespace RudderStack.Test
 {
     class Program
@@ -9,8 +9,13 @@ namespace RudderStack.Test
         {
             Logger.Handlers += Logger_Handlers;
 
-            RudderAnalytics.Initialize(RudderStack.Test.Constants.WRITE_KEY);
+            var parentPath = Utilities.getParentPath(3, System.IO.Directory.GetCurrentDirectory());
+            var filePath = parentPath + "\\.env";
+            DotEnv.Load(filePath);
+            var dataPlaneUrl = Environment.GetEnvironmentVariable("DATA_PLANE_URL");
+            var writeKey = Environment.GetEnvironmentVariable("WRITE_KEY");
 
+            RudderAnalytics.Initialize(writeKey, new RudderConfig(dataPlaneUrl: dataPlaneUrl, gzip: false));
             RudderAnalytics.Client.Track("prateek", "Item Purchased (with .Net 3.5)");
             RudderAnalytics.Client.Flush();
         }

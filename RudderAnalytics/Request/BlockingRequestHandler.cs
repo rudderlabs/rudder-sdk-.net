@@ -97,7 +97,7 @@ namespace RudderStack.Request
         internal BlockingRequestHandler(RudderClient client, TimeSpan timeout) : this(client, timeout, null, new Backo(max: 10000, jitter: 5000)) // Set maximum waiting limit to 10s and jitter to 5s
         {
         }
-        internal BlockingRequestHandler(RudderClient client, TimeSpan timeout, Backo backo) : this(client, timeout, null, backo) 
+        internal BlockingRequestHandler(RudderClient client, TimeSpan timeout, Backo backo) : this(client, timeout, null, backo)
         {
         }
 #if NET35
@@ -152,7 +152,7 @@ namespace RudderStack.Request
         public async Task MakeRequest(Batch batch)
         {
             Stopwatch watch = new Stopwatch();
-
+            _backo.Reset();
             try
             {
                 Uri uri = new Uri(_client.Config.DataPlaneUrl + "/v1/batch");
@@ -173,24 +173,24 @@ namespace RudderStack.Request
                 var requestData = Encoding.UTF8.GetBytes(json);
 
                 // Compress request data if compression is set
-//                 if (_client.Config.Gzip)
-//                 {
-// #if NET35
-//                     _httpClient.Headers.Set(HttpRequestHeader.ContentEncoding, "gzip");
-// #else
-//                     //_httpClient.DefaultRequestHeaders.Add("Content-Encoding", "gzip");
-// #endif
-//
-//                     // Compress request data with GZip
-//                     using (MemoryStream memory = new MemoryStream())
-//                     {
-//                         using (GZipStream gzip = new GZipStream(memory, CompressionMode.Compress, true))
-//                         {
-//                             gzip.Write(requestData, 0, requestData.Length);
-//                         }
-//                         requestData = memory.ToArray();
-//                     }
-//                 }
+                if (_client.Config.Gzip)
+                {
+#if NET35
+                     _httpClient.Headers.Set(HttpRequestHeader.ContentEncoding, "gzip");
+#else
+                    // _httpClient.DefaultRequestHeaders.Add("Content-Encoding", "gzip");
+#endif
+
+                    // Compress request data with GZip
+                    using (MemoryStream memory = new MemoryStream())
+                    {
+                        using (GZipStream gzip = new GZipStream(memory, CompressionMode.Compress, true))
+                        {
+                            gzip.Write(requestData, 0, requestData.Length);
+                        }
+                        requestData = memory.ToArray();
+                    }
+                }
 
                 Logger.Info("Sending analytics request to RudderStack ..", new Dict
                 {
@@ -210,9 +210,16 @@ namespace RudderStack.Request
 
                     try
                     {
+                        /*
+                         Tls = 0xc0
+                         Tls11 = 0x300
+                         Tls12 = 0xc00
+                          The default security protocol on the .NET version 3.5 is Tls, but Tls12 is the established standard now, hence setting it
+                          manually using the below statement.
+                        */
+                        ServicePointManager.SecurityProtocol = (SecurityProtocolType)(0xc0 | 0x300 | 0xc00);
                         var response = Encoding.UTF8.GetString(_httpClient.UploadData(uri, "POST", requestData));
                         watch.Stop();
-
                         Succeed(batch, watch.ElapsedMilliseconds);
                         statusCode = 200;
                         break;
@@ -222,8 +229,13 @@ namespace RudderStack.Request
                         watch.Stop();
 
                         var response = (HttpWebResponse)ex.Response;
+                        if(response != null && response.GetResponseStream() != null) {
+                        using (var reader = new System.IO.StreamReader(response.GetResponseStream(), ASCIIEncoding.ASCII)) {
+                            responseStr = reader.ReadToEnd(); 
+                        }
+                        }
                         statusCode = (response != null) ? (int)response.StatusCode : 0;
-                        if ((statusCode >= 500 && statusCode <= 600) || statusCode == 429 || statusCode == 0)
+                      if ((statusCode >= 500 && statusCode <= 600) || statusCode == 429 || statusCode == 0)
                         {
                             // If status code is greater than 500 and less than 600, it indicates server error
                             // Error code 429 indicates rate limited.
@@ -253,8 +265,6 @@ namespace RudderStack.Request
                         {
                             //If status code is greater or equal than 400 but not 429 should indicate is client error.
                             //All other types of HTTP Status code are not errors (Between 100 and 399)
-                            responseStr = String.Format("Status Code {0}. ", statusCode);
-                            responseStr += ex.Message;
                             break;
                         }
 
@@ -265,16 +275,21 @@ namespace RudderStack.Request
 
                     ByteArrayContent content = new ByteArrayContent(requestData);
                     content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-//                     if (_client.Config.Gzip)
-//                     {
-//                       content.Headers.ContentEncoding.Add("gzip");
-//                     }
+                    if (_client.Config.Gzip)
+                    {
+                        content.Headers.ContentEncoding.Add("gzip");
+                    }
 
                     HttpResponseMessage response = null;
                     bool retry = false;
                     try
                     {
                         response = await _httpClient.PostAsync(uri, content).ConfigureAwait(false);
+                        if (response != null && response.Content != null)
+                        {
+                            responseStr = await response.Content.ReadAsStringAsync();
+                        }
+
                     }
                     catch (TaskCanceledException e)
                     {
@@ -286,9 +301,29 @@ namespace RudderStack.Request
                         });
                         retry = true;
                     }
+                    catch (OperationCanceledException e)
+                    {
+                        Logger.Info("HTTP Post failed with exception of type OperationCanceledException", new Dict
+                        {
+                            { "batch id", batch.MessageId },
+                            { "reason", e.Message },
+                            { "duration (ms)", watch.ElapsedMilliseconds }
+                        });
+                        retry = true;
+                    }
                     catch (HttpRequestException e)
                     {
                         Logger.Info("HTTP Post failed with exception of type HttpRequestException", new Dict
+                        {
+                            { "batch id", batch.MessageId },
+                            { "reason", e.Message },
+                            { "duration (ms)", watch.ElapsedMilliseconds }
+                        });
+                        retry = true;
+                    }
+                    catch (System.Exception e)
+                    {
+                        Logger.Info("HTTP Post failed with exception of type Exception", new Dict
                         {
                             { "batch id", batch.MessageId },
                             { "reason", e.Message },
@@ -342,15 +377,16 @@ namespace RudderStack.Request
 #endif
                 }
 
-                var hasBackoReachedMax = _backo.HasReachedMax;
-                if (hasBackoReachedMax || statusCode != (int)HttpStatusCode.OK)
+                if (responseStr.Contains("Invalid JSON"))
                 {
-                    var message = $"Has Backoff reached max: {hasBackoReachedMax} with number of Attempts:{_backo.CurrentAttempt},\n Status Code: {statusCode}\n, response message: {responseStr}";
+                    var message = $"Received Invalid JSON as response back from the dataPlane with status code: {statusCode}, Please verify if the current version of your dataplane supports gzip compression of the request body";
+                    Logger.Error(message);
                     Fail(batch, new APIException(statusCode.ToString(), message), watch.ElapsedMilliseconds);
-                    if (_backo.HasReachedMax)
-                    {
-                        _backo.Reset();
-                    }
+                }
+                else if (_backo.HasReachedMax || statusCode != (int)HttpStatusCode.OK)
+                {
+                    var message = $"Has Backoff reached max: {_backo.HasReachedMax} with number of Attempts:{_backo.CurrentAttempt},\n Status Code: {statusCode}\n, response message: {responseStr}";
+                    Fail(batch, new APIException(statusCode.ToString(), message), watch.ElapsedMilliseconds);
                 }
             }
             catch (System.Exception e)
