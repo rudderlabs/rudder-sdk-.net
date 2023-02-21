@@ -10,7 +10,6 @@
 
 - Added a property channel, which is set to server in every event to indicate that this event is fired from server side SDK
 - Added Support for .Net 5.0
--  Pulled all the latest changes from Segment
 
 ## [1.0.1](https://github.com/rudderlabs/rudder-sdk-.net/releases/tag/v1.0.1) (2021-05-13)
 
