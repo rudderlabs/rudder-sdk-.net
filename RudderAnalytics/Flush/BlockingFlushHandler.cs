@@ -5,7 +5,7 @@ using RudderStack.Request;
 
 namespace RudderStack.Flush
 {
-    internal class BlockingFlushHandler : IAsyncFlushHandler
+    public class BlockingFlushHandler : IAsyncFlushHandler
     {
         /// <summary>
         /// Creates a series of actions into a batch that we can send to the server
@@ -16,7 +16,7 @@ namespace RudderStack.Flush
         /// </summary>
         private IRequestHandler _requestHandler;
 
-        internal BlockingFlushHandler(IBatchFactory batchFactory,
+        public BlockingFlushHandler(IBatchFactory batchFactory,
                                  IRequestHandler requestHandler)
         {
 

@@ -5,11 +5,11 @@ using RudderStack.Model;
 
 namespace RudderStack.Flush
 {
-    internal class SimpleBatchFactory : IBatchFactory
+    public class SimpleBatchFactory : IBatchFactory
     {
         private string _writeKey;
 
-        internal SimpleBatchFactory(string writeKey)
+        public SimpleBatchFactory(string writeKey)
         {
             this._writeKey = writeKey;
         }

@@ -5,7 +5,7 @@ using RudderStack.Model;
 
 namespace RudderStack.Flush
 {
-    internal interface IBatchFactory
+    public interface IBatchFactory
     {
         Batch Create(List<BaseAction> actions);
     }
