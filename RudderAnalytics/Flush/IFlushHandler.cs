@@ -13,7 +13,7 @@ namespace RudderStack.Flush
         /// Validates an action and begins the process of flushing it to the server
         /// </summary>
         /// <param name="action">Action.</param>
-        Task Process(BaseAction action);
+        void Process(BaseAction action);
 
         /// <summary>
         /// Blocks until all processing messages are flushed to the server

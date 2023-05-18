@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace RudderStack.Model
 {
-    internal class Batch
+    public class Batch
     {
         internal string WriteKey { get; set; }
 
@@ -17,7 +17,7 @@ namespace RudderStack.Model
         internal string SentAt { get; set; }
 
         [JsonProperty(PropertyName = "batch")]
-        internal List<BaseAction> batch { get; set; }
+        public List<BaseAction> batch { get; set; }
 
         internal Batch()
         {

@@ -19,14 +19,14 @@ namespace RudderStack
 #else
         private IAsyncFlushHandler _flushHandler;
 #endif
-        private string _writeKey;
+        private string       _writeKey;
         private RudderConfig _config;
 
         public Statistics Statistics { get; set; }
 
         #region Events
 
-        public event FailedHandler Failed;
+        public event FailedHandler    Failed;
         public event SucceededHandler Succeeded;
 
         #endregion
@@ -44,11 +44,18 @@ namespace RudderStack
         /// </summary>
         /// <param name="writeKey"></param>
         /// <param name="config"></param>
-        public RudderClient(string writeKey, RudderConfig config) : this(writeKey, config, null)
+        public RudderClient(string writeKey, RudderConfig config) : this(writeKey, config, (IRequestHandler)null)
         {
             if (string.IsNullOrEmpty(writeKey))
                 throw new InvalidOperationException("Please supply a valid writeKey to initialize.");
+        }
 
+        public RudderClient(string writeKey, RudderConfig config, IAsyncFlushHandler flushHandler)
+        {
+            this.Statistics = new Statistics();
+            this._writeKey  = writeKey;
+            this._config    = config;
+            _flushHandler   = flushHandler;
         }
 
         internal RudderClient(string writeKey, RudderConfig config, IRequestHandler requestHandler)
@@ -57,7 +64,7 @@ namespace RudderStack
             this.Statistics = new Statistics();
 
             this._writeKey = writeKey;
-            this._config = config;
+            this._config   = config;
 
             if (requestHandler == null)
             {
@@ -223,31 +230,31 @@ namespace RudderStack
         /// <inheritdoc />
         public void Page(string userId, string name)
         {
-            Page(userId, name, null, null, null);
+            Page(name, null, null, null);
         }
 
         /// <inheritdoc />
         public void Page(string userId, string name, RudderOptions options)
         {
-            Page(userId, name, null, null, options);
+            Page(name, null, null, options);
         }
 
         /// <inheritdoc />
         public void Page(string userId, string name, string category)
         {
-            Page(userId, name, category, null, null);
+            Page(name, category, null, null);
         }
 
         /// <inheritdoc />
         public void Page(string userId, string name, IDictionary<string, object> properties)
         {
-            Page(userId, name, null, properties, null);
+            Page(name, null, properties, null);
         }
 
         /// <inheritdoc />
         public void Page(string userId, string name, IDictionary<string, object> properties, RudderOptions options)
         {
-            Page(userId, name, null, properties, options);
+            Page(name, null, properties, options);
         }
 
         /// <inheritdoc />
@@ -338,7 +345,7 @@ namespace RudderStack
 
         private void Enqueue(BaseAction action)
         {
-            _flushHandler.Process(action).GetAwaiter().GetResult();
+            _flushHandler.Process(action);
             this.Statistics.IncrementSubmitted();
         }
 

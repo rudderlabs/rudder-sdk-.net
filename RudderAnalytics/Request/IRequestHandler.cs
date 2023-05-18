@@ -3,7 +3,7 @@ using RudderStack.Model;
 
 namespace RudderStack.Request
 {
-    internal interface IRequestHandler
+    public interface IRequestHandler
     {
         Task MakeRequest(Batch batch);
     }

@@ -21,7 +21,10 @@ namespace RudderStack.Model
             : base("group", userId, options)
         {
             this.GroupId = groupId;
-            this.Traits = traits ?? new Traits();
+            if(traits!=null && traits.Count > 0)
+            {
+                this.Traits = traits;
+            }
         }
     }
 }

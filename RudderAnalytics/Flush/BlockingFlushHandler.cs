@@ -24,10 +24,10 @@ namespace RudderStack.Flush
             this._requestHandler = requestHandler;
         }
 
-        public async Task Process(BaseAction action)
+        public void Process(BaseAction action)
         {
             Batch batch = _batchFactory.Create(new List<BaseAction>() { action });
-            await _requestHandler.MakeRequest(batch).ConfigureAwait(false);
+            _requestHandler.MakeRequest(batch).GetAwaiter().GetResult();
         }
 
         /// <summary>

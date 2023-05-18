@@ -19,7 +19,7 @@ namespace RudderStack
             DEBUG,
             INFO,
             WARN,
-            ERROR
+            ERROR,
         }
 
         #region Events

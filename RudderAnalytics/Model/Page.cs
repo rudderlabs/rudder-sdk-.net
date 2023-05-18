@@ -17,6 +17,8 @@ namespace RudderStack.Model
         [JsonProperty(PropertyName = "properties")]
         public IDictionary<string, object> Properties { get; set; }
 
+        public Page() { }
+        
         internal Page(string userId,
                       string name,
                       string category,
@@ -27,7 +29,10 @@ namespace RudderStack.Model
         {
             this.Name = name;
             this.Category = category;
-            this.Properties = properties ?? new Properties();
+            if (properties != null && properties.Count > 0)
+            {
+                this.Properties = properties;
+            }
         }
     }
 }

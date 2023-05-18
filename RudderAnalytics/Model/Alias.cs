@@ -11,6 +11,8 @@ namespace RudderStack.Model
         [JsonProperty(PropertyName = "previousId")]
         public string PreviousId { get; set; }
 
+        public Alias() { }
+        
         internal Alias(string previousId, string userId, RudderOptions options)
             : base("alias", userId, options)
         {

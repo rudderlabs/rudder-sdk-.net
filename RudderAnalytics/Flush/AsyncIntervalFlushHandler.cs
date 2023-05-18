@@ -54,7 +54,7 @@ namespace RudderStack.Flush
         private void RunInterval()
         {
             var initialDelay = _queue.Count == 0 ? _flushIntervalInMillis : 0;
-            _timer = new Timer(new TimerCallback(async (b) => await PerformFlush()), new { }, initialDelay, _flushIntervalInMillis);
+            _timer = new Timer(async b => await PerformFlush(), new { }, initialDelay, _flushIntervalInMillis);
         }
 
 
@@ -138,7 +138,7 @@ namespace RudderStack.Flush
             }
         }
 
-        public async Task Process(BaseAction action)
+        public void Process(BaseAction action)
         {
             action.Size = ActionSizeCalculator.Calculate(action);
 
