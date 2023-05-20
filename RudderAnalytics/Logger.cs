@@ -40,40 +40,40 @@ namespace RudderStack
             if (Handlers != null) Handlers(level, message, args);
         }
 
-        internal static void Debug(string message)
+        public static void Debug(string message)
         {
             _Log(Level.DEBUG, message, null);
         }
 
-        internal static void Debug(string message, IDictionary<string, object> args)
+        public static void Debug(string message, IDictionary<string, object> args)
         {
             _Log(Level.DEBUG, message, args);
         }
 
-        internal static void Info(string message)
+        public static void Info(string message)
         {
             _Log(Level.INFO, message, null);
         }
 
-        internal static void Info(string message, IDictionary<string, object> args)
+        public static void Info(string message, IDictionary<string, object> args)
         {
             _Log(Level.INFO, message, args);
         }
-        internal static void Warn(string message)
+        public static void Warn(string message)
         {
             _Log(Level.WARN, message, null);
         }
 
-        internal static void Warn(string message, IDictionary<string, object> args)
+        public static void Warn(string message, IDictionary<string, object> args)
         {
             _Log(Level.WARN, message, args);
         }
-        internal static void Error(string message)
+        public static void Error(string message)
         {
             _Log(Level.ERROR, message, null);
         }
 
-        internal static void Error(string message, IDictionary<string, object> args)
+        public static void Error(string message, IDictionary<string, object> args)
         {
             _Log(Level.ERROR, message, args);
         }

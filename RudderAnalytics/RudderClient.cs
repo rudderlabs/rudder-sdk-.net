@@ -359,12 +359,12 @@ namespace RudderStack
 
         #region Event API
 
-        internal void RaiseSuccess(BaseAction action)
+        public void RaiseSuccess(BaseAction action)
         {
             if (Succeeded != null) Succeeded(action);
         }
 
-        internal void RaiseFailure(BaseAction action, System.Exception e)
+        public void RaiseFailure(BaseAction action, System.Exception e)
         {
             if (Failed != null) Failed(action, e);
         }

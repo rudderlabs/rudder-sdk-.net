@@ -19,7 +19,6 @@ namespace RudderStack.Flush
         public BlockingFlushHandler(IBatchFactory batchFactory,
                                  IRequestHandler requestHandler)
         {
-
             this._batchFactory = batchFactory;
             this._requestHandler = requestHandler;
         }

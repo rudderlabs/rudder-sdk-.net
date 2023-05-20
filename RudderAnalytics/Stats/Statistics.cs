@@ -19,9 +19,9 @@ namespace RudderStack.Stats
         public int Succeeded => _succeeded;
         public int Failed => _failed;
 
-        internal void IncrementSubmitted() => Increment(ref _submitted);
-        internal void IncrementSucceeded() => Increment(ref _succeeded);
-        internal void IncrementFailed() => Increment(ref _failed);
+        public void IncrementSubmitted() => Increment(ref _submitted);
+        public void IncrementSucceeded() => Increment(ref _succeeded);
+        public void IncrementFailed() => Increment(ref _failed);
 
         private void Increment(ref int value)
         {

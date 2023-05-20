@@ -8,23 +8,23 @@ namespace RudderStack.Model
 {
     public class Batch
     {
-        internal string WriteKey { get; set; }
+        public string WriteKey { get; internal set; }
 
         [JsonProperty(PropertyName = "messageId")]
-        internal string MessageId { get; private set; }
+        public string MessageId { get; private set; }
 
         [JsonProperty(PropertyName = "sentAt")]
-        internal string SentAt { get; set; }
+        public string SentAt { get; set; }
 
         [JsonProperty(PropertyName = "batch")]
         public List<BaseAction> batch { get; set; }
 
-        internal Batch()
+        public Batch()
         {
             this.MessageId = Guid.NewGuid().ToString();
         }
 
-        internal Batch(string writeKey, List<BaseAction> batch) : this()
+        public Batch(string writeKey, List<BaseAction> batch) : this()
         {
             this.WriteKey = writeKey;
             this.batch = batch;

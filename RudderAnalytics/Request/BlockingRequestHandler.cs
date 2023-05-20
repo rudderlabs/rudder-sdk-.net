@@ -19,14 +19,14 @@ using System.IO.Compression;
 namespace RudderStack.Request
 {
 #if NET35
-    internal interface IHttpClient
+    public interface IHttpClient
     {
         WebHeaderCollection Headers { get; set; }
         IWebProxy Proxy { get; set; }
         byte[] UploadData(Uri address, string method, byte[] data);
     }
 
-    internal class HttpClient : WebClient, IHttpClient
+    public class HttpClient : WebClient, IHttpClient
     {
         public TimeSpan Timeout { get; set; }
 
@@ -39,7 +39,7 @@ namespace RudderStack.Request
         }
     }
 #else
-    class WebProxy : System.Net.IWebProxy
+    public class WebProxy : System.Net.IWebProxy
     {
         private string _proxy;
 
