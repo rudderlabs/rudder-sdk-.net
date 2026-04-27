@@ -6,6 +6,9 @@ on:
     paths-ignore:
     - 'README.md'
 
+permissions:
+  contents: read
+
 jobs:
   build_sdk:
     name: Build Check for the .NET SDK
