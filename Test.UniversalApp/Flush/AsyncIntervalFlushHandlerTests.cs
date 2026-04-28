@@ -131,7 +131,7 @@ namespace RudderStack.Test.Flush
         }
 
         [TestMethod]
-        public async Task IntervalFlushLimitConcurrentProcesses ()
+        public async Task IntervalFlushLimitConcurrentProcesses()
         {
             var time = 2000;
             _handler = GetFlushHandler(100, 20, 300);
