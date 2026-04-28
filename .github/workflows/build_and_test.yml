@@ -20,6 +20,7 @@ jobs:
       uses: actions/setup-java@v4
       with:
         java-version: '11'
+        distribution: 'temurin'
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -30,7 +31,7 @@ jobs:
       run: dotnet tool install -g dotnet-format
     
     - name: Verify Code Formatting
-      run: dotnet format --check --verbosity diagnostic
+      run: dotnet format --verify-no-changes --verbosity diagnostic
 
     - name: Install dependencies
       run: dotnet restore RudderAnalytics/RudderAnalytics.csproj
@@ -91,7 +92,7 @@ jobs:
       run: dotnet tool install -g dotnet-format
     
     - name: Verify Code Formatting
-      run: dotnet format --check --verbosity diagnostic
+      run: dotnet format --verify-no-changes --verbosity diagnostic
 
     - name: Build
       run: dotnet build Test/Test.csproj --configuration Release --no-restore
@@ -120,7 +121,7 @@ jobs:
       run: dotnet tool install -g dotnet-format
     
     - name: Verify Code Formatting
-      run: dotnet format --check --verbosity diagnostic
+      run: dotnet format --verify-no-changes --verbosity diagnostic
 
     - name: Build
       run: dotnet build Test.NetStandard20/Test.NetStandard20.csproj --configuration Release --no-restore
@@ -146,7 +147,7 @@ jobs:
       run: dotnet tool install -g dotnet-format
 
     - name: Verify Code Formatting
-      run: dotnet format --check --verbosity diagnostic
+      run: dotnet format --verify-no-changes --verbosity diagnostic
 
     - name: Install dependencies
       run: dotnet restore Test.Net50/Test.Net50.csproj
@@ -223,7 +224,7 @@ jobs:
       run: dotnet tool install -g dotnet-format
     
     - name: Verify Code Formatting
-      run: dotnet format --check --verbosity diagnostic 
+      run: dotnet format --verify-no-changes --verbosity diagnostic 
 
     - name: Install dependencies
       run: dotnet restore Test.Net45/Test.Net45.csproj
