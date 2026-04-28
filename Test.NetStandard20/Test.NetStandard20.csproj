@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RudderAnalytics\RudderAnalytics.csproj" />
+    <ProjectReference Include="..\RudderAnalytics\RudderAnalytics.csproj" Properties="TargetFramework=netstandard2.0" />
   </ItemGroup>
 
   <ItemGroup>
