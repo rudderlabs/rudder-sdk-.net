@@ -49,7 +49,7 @@ namespace RudderStack.Test
             config.SetMaxRetryTime(new TimeSpan(0, 0, 10));
             RudderAnalytics.Initialize(Constants.WRITE_KEY, config);
 
-            // Calculate working time for Identiy message with invalid host address
+            // Calculate working time for Identify message with invalid host address
             watch.Start();
             Actions.Identify(RudderAnalytics.Client);
             watch.Stop();
@@ -60,7 +60,7 @@ namespace RudderStack.Test
 
             // Handling Identify message will take more than 10s even though the timeout is 1s.
             // That's because it retries submit when it's failed.
-            Assert.AreEqual(true, watch.ElapsedMilliseconds > 10000);
+            Assert.IsTrue(watch.ElapsedMilliseconds > 10000);
         }
 
         [TestMethod]
@@ -74,7 +74,7 @@ namespace RudderStack.Test
             config.SetTimeout(new TimeSpan(0, 0, 1));
             RudderAnalytics.Initialize(Constants.WRITE_KEY, config);
 
-            // Calculate working time for Identiy message with invalid host address
+            // Calculate working time for Identify message with invalid host address
             watch.Start();
             Actions.Identify(RudderAnalytics.Client);
             watch.Stop();
@@ -85,7 +85,7 @@ namespace RudderStack.Test
 
             // Handling Identify message will take more than 10s even though the timeout is 1s.
             // That's because it retries submit when it's failed.
-            Assert.AreEqual(true, watch.ElapsedMilliseconds > 10000);
+            Assert.IsTrue(watch.ElapsedMilliseconds > 10000);
         }
 
         [TestMethod]

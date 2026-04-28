@@ -72,7 +72,7 @@ jobs:
         .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"        
 
   build_and_test_netcoreapp21:
-    name: Build and Quality Check for .Net8.0
+    name: Build and Quality Check for .NetCoreApp2.1
     runs-on: windows-2022
 
     steps:
@@ -83,16 +83,10 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 2.1.x
 
     - name: Install dependencies
       run: dotnet restore Test/Test.csproj
-    
-    - name: Install dotnet-format
-      run: dotnet tool install -g dotnet-format
-    
-    - name: Verify Code Formatting
-      run: dotnet format --verify-no-changes --verbosity diagnostic
 
     - name: Build
       run: dotnet build Test/Test.csproj --configuration Release --no-restore
