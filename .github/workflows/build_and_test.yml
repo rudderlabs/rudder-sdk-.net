@@ -88,6 +88,12 @@ jobs:
     - name: Install dependencies
       run: dotnet restore Test/Test.csproj
 
+    - name: Install dotnet-format
+      run: dotnet tool install -g dotnet-format
+
+    - name: Verify Code Formatting
+      run: dotnet format --check --verbosity diagnostic
+
     - name: Build
       run: dotnet build Test/Test.csproj --configuration Release --no-restore
 
@@ -106,16 +112,16 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 2.1.x
 
     - name: Install dependencies
       run: dotnet restore Test.NetStandard20/Test.NetStandard20.csproj
 
     - name: Install dotnet-format
       run: dotnet tool install -g dotnet-format
-    
+
     - name: Verify Code Formatting
-      run: dotnet format --verify-no-changes --verbosity diagnostic
+      run: dotnet format --check --verbosity diagnostic
 
     - name: Build
       run: dotnet build Test.NetStandard20/Test.NetStandard20.csproj --configuration Release --no-restore
