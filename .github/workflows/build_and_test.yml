@@ -26,7 +26,7 @@ jobs:
       uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: 5.0.x
-
+    
     - name: Install dotnet-format
       run: dotnet tool install -g dotnet-format
     
@@ -72,7 +72,7 @@ jobs:
         .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"        
 
   build_and_test_netcoreapp21:
-    name: Build and Quality Check for .Net8.0
+    name: Build and Quality Check for .NetCoreApp2.1
     runs-on: windows-2022
 
     steps:
@@ -83,7 +83,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 2.1.x
 
     - name: Install dependencies
       run: dotnet restore Test/Test.csproj
@@ -92,7 +92,7 @@ jobs:
       run: dotnet tool install -g dotnet-format
 
     - name: Verify Code Formatting
-      run: dotnet format --verify-no-changes --verbosity diagnostic
+      run: dotnet-format --check --verbosity diagnostic
 
     - name: Build
       run: dotnet build Test/Test.csproj --configuration Release --no-restore
@@ -112,7 +112,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 2.1.x
 
     - name: Install dependencies
       run: dotnet restore Test.NetStandard20/Test.NetStandard20.csproj
@@ -121,7 +121,7 @@ jobs:
       run: dotnet tool install -g dotnet-format
 
     - name: Verify Code Formatting
-      run: dotnet format --verify-no-changes --verbosity diagnostic
+      run: dotnet-format --check --verbosity diagnostic
 
     - name: Build
       run: dotnet build Test.NetStandard20/Test.NetStandard20.csproj --configuration Release --no-restore
@@ -222,7 +222,7 @@ jobs:
 
     - name: Install dotnet-format
       run: dotnet tool install -g dotnet-format
-
+    
     - name: Verify Code Formatting
       run: dotnet format --verify-no-changes --verbosity diagnostic 
 
