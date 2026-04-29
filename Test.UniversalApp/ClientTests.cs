@@ -8,23 +8,23 @@ using RudderStack.Model;
 
 namespace RudderStack.Test
 {
-	[TestClass]
-	public class ClientTests
-	{
-		RudderClient client;
+    [TestClass]
+    public class ClientTests
+    {
+        RudderClient client;
 
-		[TestInitialize]
-		public void Init()
-		{
-			client = new RudderClient("foo");
-		}
+        [TestInitialize]
+        public void Init()
+        {
+            client = new RudderClient("foo");
+        }
 
-		[TestMethod]
-		public void TrackTestNetPortable()
-		{
-			// verify it doesn't fail for a null options
-			client.Screen("bar", "qaz", null, null);
-		}
-	}
+        [TestMethod]
+        public void TrackTestNetPortable()
+        {
+            // verify it doesn't fail for a null options
+            client.Screen("bar", "qaz", null, null);
+        }
+    }
 }
 

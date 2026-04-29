@@ -9,20 +9,21 @@ on:
 jobs:
   build_sdk:
     name: Build Check for the .NET SDK
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
 
     - name: Set up JDK 11
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
       with:
-        java-version: 1.11
+        java-version: '11'
+        distribution: 'temurin'
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: 5.0.x
     
@@ -30,7 +31,7 @@ jobs:
       run: dotnet tool install -g dotnet-format
     
     - name: Verify Code Formatting
-      run: dotnet format --check --verbosity diagnostic
+      run: dotnet format --verify-no-changes --verbosity diagnostic
 
     - name: Install dependencies
       run: dotnet restore RudderAnalytics/RudderAnalytics.csproj
@@ -39,7 +40,7 @@ jobs:
       run: dotnet build RudderAnalytics/RudderAnalytics.csproj --configuration Release --no-restore
 
     - name: Cache SonarCloud packages
-      uses: actions/cache@v1
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ~\sonar\cache
         key: ${{ runner.os }}-sonar
@@ -47,7 +48,7 @@ jobs:
 
     - name: Cache SonarCloud scanner
       id: cache-sonar-scanner
-      uses: actions/cache@v1
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: .\.sonar\scanner
         key: ${{ runner.os }}-sonar-scanner
@@ -72,26 +73,26 @@ jobs:
 
   build_and_test_netcoreapp21:
     name: Build and Quality Check for .NetCoreApp2.1
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: 2.1.x
 
     - name: Install dependencies
       run: dotnet restore Test/Test.csproj
-    
+
     - name: Install dotnet-format
       run: dotnet tool install -g dotnet-format
-    
+
     - name: Verify Code Formatting
-      run: dotnet format --check --verbosity diagnostic
+      run: dotnet-format --check --verbosity diagnostic
 
     - name: Build
       run: dotnet build Test/Test.csproj --configuration Release --no-restore
@@ -101,15 +102,15 @@ jobs:
 
   build_and_test_netstandard20:
     name: Build and Quality Check for .NetStandard20
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: 2.1.x
 
@@ -118,9 +119,9 @@ jobs:
 
     - name: Install dotnet-format
       run: dotnet tool install -g dotnet-format
-    
+
     - name: Verify Code Formatting
-      run: dotnet format --check --verbosity diagnostic
+      run: dotnet-format --check --verbosity diagnostic
 
     - name: Build
       run: dotnet build Test.NetStandard20/Test.NetStandard20.csproj --configuration Release --no-restore
@@ -130,23 +131,23 @@ jobs:
 
   build_and_test_net50:
     name: Build and Quality Check for .Net50
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: 5.0.x
-    
+
     - name: Install dotnet-format
       run: dotnet tool install -g dotnet-format
-    
+
     - name: Verify Code Formatting
-      run: dotnet format --check --verbosity diagnostic
+      run: dotnet format --verify-no-changes --verbosity diagnostic
 
     - name: Install dependencies
       run: dotnet restore Test.Net50/Test.Net50.csproj
@@ -164,31 +165,31 @@ jobs:
       run: reportgenerator -reports:"Test.Net50/coverage/*/coverage.cobertura.xml" -targetdir:"Test.Net50/coveragereport" -reporttypes:"HtmlInline" -title:".Net50"
     
     - name: Archive code coverage results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: Code Coverage Report for Test.Net50
         path: Test.Net50/coveragereport/
 
   build_and_test_net35:
     name: Build and Quality Check for .Net35
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
 
     - name: setup-msbuild
-      uses: microsoft/setup-msbuild@v1.1
+      uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506 # v1.1.3
 
     - name: Setup NuGet
-      uses: NuGet/setup-nuget@v1.0.5
+      uses: NuGet/setup-nuget@04b0c2b8d1b97922f67eca497d7cf0bf17b8ffe1 # v1.0.5
 
     - name: Setup VSTest.console.exe
-      uses: darenm/Setup-VSTest@v1.2
-    
+      uses: darenm/Setup-VSTest@d9a5dffa3f11d9c27ec42eb69515d3aaeaad9ef8 # v1.2
+
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: 5.0.x
 
@@ -204,26 +205,26 @@ jobs:
 
   build_and_test_net45:
     name: Build and Quality Check for .Net45
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
 
     - name: Setup VSTest.console.exe
-      uses: darenm/Setup-VSTest@v1.2
-    
+      uses: darenm/Setup-VSTest@d9a5dffa3f11d9c27ec42eb69515d3aaeaad9ef8 # v1.2
+
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: 5.0.x
-    
+
     - name: Install dotnet-format
       run: dotnet tool install -g dotnet-format
     
     - name: Verify Code Formatting
-      run: dotnet format --check --verbosity diagnostic 
+      run: dotnet format --verify-no-changes --verbosity diagnostic 
 
     - name: Install dependencies
       run: dotnet restore Test.Net45/Test.Net45.csproj
