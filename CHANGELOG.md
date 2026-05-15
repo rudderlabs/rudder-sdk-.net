@@ -1,5 +1,13 @@
 #
 
+## [2.0.1](https://github.com/rudderlabs/rudder-sdk-.net/releases/tag/v2.0.1) (2026-05-15)
+
+### Bug Fixes
+
+- Resolved Snyk vulnerabilities in SDK dependencies (#28)
+- Upgraded OSS dependencies with known vulnerabilities (#17)
+- Fixed Snyk security issues in dependencies (#14)
+
 ## [2.0.0](https://github.com/rudderlabs/rudder-sdk-.net/releases/tag/v2.0.0) (2023-02-16)
 
 ### Breaking Changes
