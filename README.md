@@ -1,5 +1,7 @@
 # What is RudderStack?
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rudderlabs/rudder-sdk-.net)
+
 [RudderStack](https://rudderstack.com/) is a **customer data pipeline** tool for collecting, routing and processing data from your websites, apps, cloud tools, and data warehouse.
 
 More information on RudderStack can be found [here](https://github.com/rudderlabs/rudder-server).
@@ -8,18 +10,18 @@ Released under the MIT License.
 
 ### Latest Version
 
-`2.0.0`
+`2.0.1`
 
 ## Getting Started with .NET SDK
 
 Install `RudderAnalytics` using `NuGet`
 ```
-Install-Package RudderAnalytics -Version 2.0.0
+Install-Package RudderAnalytics -Version 2.0.1
 ```
 
 ## Migrating from v1 to v2
 
-The Gzip feature is enabled by default in the .NET SDK from version `2.0.0`. Refer to [Gzipping requests](#gzipping-requests) section for more details.
+The Gzip feature is enabled by default in the .NET SDK from version `2.0.1`. Refer to [Gzipping requests](#gzipping-requests) section for more details.
 
 ## Initialize the ```Client```
 
@@ -35,7 +37,7 @@ RudderAnalytics.Initialize(
 ## Gzipping requests
 
 
-> The Gzip feature is enabled by default in the .NET SDK from version `2.0.0`.
+> The Gzip feature is enabled by default in the .NET SDK from version `2.0.1`.
 
 
 The .NET SDK automatically gzips requests. However, you can disable this by setting the `gzip` parameter of `RudderConfig` to `false` while initializing the SDK, as shown:
