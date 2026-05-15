@@ -13,6 +13,7 @@ jobs:
   build_sdk:
     name: Build Check for the .NET SDK
     runs-on: windows-2022
+    environment: sonarcloud
 
     steps:
     - name: Harden the runner (Audit all outbound calls)
