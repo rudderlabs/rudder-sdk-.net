@@ -1,0 +1,85 @@
+---
+name: Publish NuGet Package
+
+"on":
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    name: Pack RudderAnalytics
+    runs-on: windows-2022
+    permissions:
+      contents: read
+
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: >-
+          step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: 5.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore RudderAnalytics/RudderAnalytics.csproj
+
+      - name: Build
+        run: >-
+          dotnet build RudderAnalytics/RudderAnalytics.csproj
+          --configuration Release
+          --no-restore
+
+      - name: Pack
+        run: >-
+          dotnet pack RudderAnalytics/RudderAnalytics.csproj
+          --configuration Release
+          --no-build
+          --output artifacts
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rudderanalytics-nuget-package
+          path: artifacts/*.nupkg
+          if-no-files-found: error
+
+  publish:
+    name: Publish RudderAnalytics to NuGet
+    needs: pack
+    runs-on: windows-2022
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rudderanalytics-nuget-package
+          path: artifacts
+
+      - name: Authenticate to NuGet
+        id: login
+        # NuGet/login@v1 performs the Trusted Publishing OIDC exchange.
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER || secrets.NUGET_USER }}
+
+      - name: Publish package
+        run: >-
+          dotnet nuget push artifacts/*.nupkg
+          --source https://api.nuget.org/v3/index.json
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+          --skip-duplicate
