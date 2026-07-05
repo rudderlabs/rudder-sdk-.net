@@ -49,6 +49,9 @@ permissions:
 jobs:
   request:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      issues: read
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
@@ -60,4 +63,4 @@ jobs:
         with:
           notionKey: ${{ secrets.NOTION_BOT_KEY }}
           notionDatabaseId: ${{ secrets.NOTION_PR_DB_ID }}
-          githubKey: ${{ secrets.PAT }}
+          githubKey: ${{ secrets.GITHUB_TOKEN }}
