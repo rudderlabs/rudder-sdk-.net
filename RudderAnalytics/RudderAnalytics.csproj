@@ -5,7 +5,7 @@
     <RootNamespace>RudderStack</RootNamespace>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageId>RudderAnalytics</PackageId>
-    <Version>2.0.1</Version>
+    <Version>2.0.1</Version> <!-- x-release-please-version -->
     <Authors>RudderStack Team</Authors>
     <Company />
     <Product>RudderAnalytics.NET</Product>
@@ -16,7 +16,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/rudderlabs/rudder-sdk-.net</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <ReleaseVersion>2.0.1</ReleaseVersion>
+    <ReleaseVersion>2.0.1</ReleaseVersion> <!-- x-release-please-version -->
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)'=='net35'">
