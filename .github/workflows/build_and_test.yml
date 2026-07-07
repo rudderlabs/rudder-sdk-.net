@@ -6,12 +6,21 @@ on:
     paths-ignore:
     - 'README.md'
 
+permissions:
+  contents: read
+
 jobs:
   build_sdk:
     name: Build Check for the .NET SDK
     runs-on: windows-2022
+    environment: sonarcloud
 
     steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+      with:
+        egress-policy: audit
+
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
@@ -26,10 +35,10 @@ jobs:
       uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: 5.0.x
-    
+
     - name: Install dotnet-format
       run: dotnet tool install -g dotnet-format
-    
+
     - name: Verify Code Formatting
       run: dotnet format --verify-no-changes --verbosity diagnostic
 
@@ -69,13 +78,18 @@ jobs:
       run: |
         .\.sonar\scanner\dotnet-sonarscanner begin /k:"rudderlabs_rudder-sdk-.net2" /o:"rudderlabs" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
         dotnet build RudderAnalytics/RudderAnalytics.csproj --configuration Release --no-restore
-        .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"        
+        .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
 
   build_and_test_netcoreapp21:
     name: Build and Quality Check for .NetCoreApp2.1
     runs-on: windows-2022
 
     steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+      with:
+        egress-policy: audit
+
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
@@ -105,6 +119,11 @@ jobs:
     runs-on: windows-2022
 
     steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+      with:
+        egress-policy: audit
+
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
@@ -134,6 +153,11 @@ jobs:
     runs-on: windows-2022
 
     steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+      with:
+        egress-policy: audit
+
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
@@ -155,15 +179,15 @@ jobs:
     - name: Build
       run: dotnet build Test.Net50/Test.Net50.csproj --configuration Release --no-restore
 
-    - name: Execute Unit Test cases and collect data for code coverage      
+    - name: Execute Unit Test cases and collect data for code coverage
       run: dotnet test Test.Net50/Test.Net50.csproj --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory Test.Net50/coverage
-    
+
     - name: Install the Report Generator tool
       run: dotnet tool install -g dotnet-reportgenerator-globaltool
-    
+
     - name: Generate the Code Coverage Report
       run: reportgenerator -reports:"Test.Net50/coverage/*/coverage.cobertura.xml" -targetdir:"Test.Net50/coveragereport" -reporttypes:"HtmlInline" -title:".Net50"
-    
+
     - name: Archive code coverage results
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
@@ -175,6 +199,11 @@ jobs:
     runs-on: windows-2022
 
     steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+      with:
+        egress-policy: audit
+
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
@@ -208,6 +237,11 @@ jobs:
     runs-on: windows-2022
 
     steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+      with:
+        egress-policy: audit
+
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
@@ -222,9 +256,9 @@ jobs:
 
     - name: Install dotnet-format
       run: dotnet tool install -g dotnet-format
-    
+
     - name: Verify Code Formatting
-      run: dotnet format --verify-no-changes --verbosity diagnostic 
+      run: dotnet format --verify-no-changes --verbosity diagnostic
 
     - name: Install dependencies
       run: dotnet restore Test.Net45/Test.Net45.csproj
