@@ -3,16 +3,41 @@ name: Publish NuGet Package
 
 "on":
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*.*.*'
+  release:
+    types: [published]
 
 permissions:
   contents: read
 
 jobs:
+  validate-ref:
+    name: Validate publish ref
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Confirm manual dispatch ref
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]]; then
+            exit 0
+          fi
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            exit 0
+          fi
+
+          if [[ "${GITHUB_REF_NAME}" == "master" ]]; then
+            exit 0
+          fi
+
+          echo "Manual publishing is only allowed from tags or master."
+          exit 1
+
   pack:
     name: Pack RudderAnalytics
+    needs: validate-ref
     runs-on: windows-2022
     permissions:
       contents: read
@@ -79,7 +104,7 @@ jobs:
         # NuGet/login v1.2.0 performs the Trusted Publishing OIDC exchange.
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841
         with:
-          user: ${{ vars.NUGET_USER || secrets.NUGET_USER }}
+          user: ${{ secrets.NUGET_USER }}
 
       - name: Publish package
         run: >-
