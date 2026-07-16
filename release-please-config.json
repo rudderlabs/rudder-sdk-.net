@@ -30,6 +30,10 @@
         {
           "type": "generic",
           "path": "RudderAnalytics/RudderAnalytics.cs"
+        },
+        {
+          "type": "generic",
+          "path": "README.md"
         }
       ]
     }
