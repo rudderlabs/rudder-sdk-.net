@@ -10,14 +10,18 @@ Released under the MIT License.
 
 ### Latest Version
 
+<!-- x-release-please-start-version -->
 `2.0.1`
+<!-- x-release-please-end -->
 
 ## Getting Started with .NET SDK
 
 Install `RudderAnalytics` using `NuGet`
+<!-- x-release-please-start-version -->
 ```
 Install-Package RudderAnalytics -Version 2.0.1
 ```
+<!-- x-release-please-end -->
 
 ## Migrating from v1 to v2
 
