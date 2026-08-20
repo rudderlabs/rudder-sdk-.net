@@ -25,7 +25,7 @@ Install-Package RudderAnalytics -Version 2.0.2
 
 ## Migrating from v1 to v2
 
-The Gzip feature is enabled by default in the .NET SDK from version `2.0.1`. Refer to [Gzipping requests](#gzipping-requests) section for more details.
+The Gzip feature is enabled by default in the .NET SDK from version `2.0.0`. Refer to [Gzipping requests](#gzipping-requests) section for more details.
 
 ## Initialize the ```Client```
 
@@ -41,7 +41,7 @@ RudderAnalytics.Initialize(
 ## Gzipping requests
 
 
-> The Gzip feature is enabled by default in the .NET SDK from version `2.0.1`.
+> The Gzip feature is enabled by default in the .NET SDK from version `2.0.0`.
 
 
 The .NET SDK automatically gzips requests. However, you can disable this by setting the `gzip` parameter of `RudderConfig` to `false` while initializing the SDK, as shown:
