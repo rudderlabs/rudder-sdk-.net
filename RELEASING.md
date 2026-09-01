@@ -4,7 +4,7 @@ Prerequisites:
 
 - Install the .NET SDK from https://dotnet.microsoft.com/en-us/download/dotnet.
 - Confirm the `RudderAnalytics` package owner has a NuGet Trusted Publishing policy for this repository.
-- Configure the GitHub `release` environment with `NUGET_USER` as a repository/environment secret matching the NuGet.org user or organization profile name.
+- Configure the GitHub `release` environment with `NUGET_USER` as a repository/environment secret containing the NuGet.org username of an administrator of the `rudderlabs` organization. Do not use the organization name.
 
 ## NuGet Trusted Publishing setup
 
