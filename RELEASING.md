@@ -1,16 +1,34 @@
 # Releasing
 
-Pre-requisits: 
-Make sure to have .net installed ( download from [here](https://dotnet.microsoft.com/en-us/download/dotnet) )
+Prerequisites:
 
+- Install the .NET SDK from https://dotnet.microsoft.com/en-us/download/dotnet.
+- Confirm the `RudderAnalytics` package owner has a NuGet Trusted Publishing policy for this repository.
+- Configure the GitHub `release` environment with `NUGET_USER` as a repository/environment secret containing the NuGet.org username of an administrator of the `rudderlabs` organization. Do not use the organization name.
 
-1.  Change the version in `Analytics/Analytics.csproj`.
-2.  Update the version in `Analytics/Analytics.cs`.
-3.  `dotnet pack -o . -c Release Analytics/Analytics.csproj` to verify the build.
-4.  `git commit -am "Release X.Y.Z."` (where X.Y.Z is the new version)
-5.  `git tag -a X.Y.Z -m "Version X.Y.Z"` (where X.Y.Z is the new version)
-6.  `dotnet pack -o . -c Release Analytics/Analytics.csproj` to build.
-7.  `dotnet nuget push Analytics.{X.Y.Z}.nupkg -s https://www.nuget.org/api/v2/package -k <NUGET_API_KEY>`
-8.  `git push origin master` to push the last commit 
-9.  `git push --tags` to push the release tag
-10.  Goto [here](https://github.com/rudderlabs/rudder-sdk-.net/tags) and create a release from the pushed tag
+## NuGet Trusted Publishing setup
+
+NuGet publishing uses GitHub Actions OIDC instead of a long-lived `NUGET_API_KEY`. The NuGet.org Trusted Publishing policy for `RudderAnalytics` must match:
+
+- Repository Owner: `rudderlabs`
+- Repository: `rudder-sdk-.net`
+- Workflow File: `publish-nuget.yml`
+- Environment: `release`
+
+Keep the legacy `NUGET_API_KEY` secret until one Trusted Publishing release succeeds. After that release is verified on NuGet.org, remove or rotate the old API key secret.
+
+## NuGet publish flow
+
+Publishing is handled by the `Publish NuGet Package` workflow when a GitHub release is published. Tag push events do not publish packages.
+
+Before publishing a release, verify the package locally:
+
+```sh
+dotnet restore RudderAnalytics/RudderAnalytics.csproj
+dotnet build RudderAnalytics/RudderAnalytics.csproj --configuration Release --no-restore
+dotnet pack RudderAnalytics/RudderAnalytics.csproj --configuration Release --no-build --output artifacts
+```
+
+Publish the GitHub release for the intended `vX.Y.Z` tag after the release changes are on `master`. Confirm the workflow completes successfully and the `RudderAnalytics` version appears on NuGet.org.
+
+The publish workflow can also be started manually with `workflow_dispatch`, but only from a tag or the `master` branch.
