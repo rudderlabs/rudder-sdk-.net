@@ -1,5 +1,16 @@
 #
 
+## [2.0.3](https://github.com/rudderlabs/rudder-sdk-.net/compare/v2.0.2...v2.0.3) (2026-09-02)
+
+
+### Miscellaneous
+
+* add Dependabot version-update config (SEC-359) ([#40](https://github.com/rudderlabs/rudder-sdk-.net/issues/40)) ([e7338b0](https://github.com/rudderlabs/rudder-sdk-.net/commit/e7338b029f1efb2461562e732900f03f28edbd5e))
+* migrate nuget publish to trusted publishing ([#33](https://github.com/rudderlabs/rudder-sdk-.net/issues/33)) ([bac8dc1](https://github.com/rudderlabs/rudder-sdk-.net/commit/bac8dc179c4ebd1a3f76a52d82932e415a9e4f90))
+* sdk-5335 notify slack of github releases ([#41](https://github.com/rudderlabs/rudder-sdk-.net/issues/41)) ([65f7a92](https://github.com/rudderlabs/rudder-sdk-.net/commit/65f7a922025e44a90a83b6883499c8a68ba9cbc8))
+* sdk-5339 decommission stale develop branch ([#43](https://github.com/rudderlabs/rudder-sdk-.net/issues/43)) ([2943fe4](https://github.com/rudderlabs/rudder-sdk-.net/commit/2943fe46388159d2a30516e17104d4d99573127c))
+* update branding icon and readme images ([#44](https://github.com/rudderlabs/rudder-sdk-.net/issues/44)) ([e0cd057](https://github.com/rudderlabs/rudder-sdk-.net/commit/e0cd0577d20d7971c33310328e08198ff17f7e7c))
+
 ## [2.0.2](https://github.com/rudderlabs/rudder-sdk-.net/compare/v2.0.1...v2.0.2) (2026-07-20)
 
 
