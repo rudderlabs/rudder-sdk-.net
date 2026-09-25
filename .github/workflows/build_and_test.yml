@@ -1,5 +1,7 @@
 name: Build and Unit Test Checks
 on:
+  push:
+    branches: [ master ]
   pull_request:
     branches: [ master ]
     types: ['opened', 'reopened', 'synchronize']
