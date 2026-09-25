@@ -63,8 +63,14 @@ Only the publish job receives `id-token: write` permission.
 
 The Slack `#releases` success notification runs only after publication succeeds
 and NuGet's public API lists the exact version and serves its package file.
-Verification retries up to 20 times, with 15-second pauses and 15-second request
-timeouts. If verification fails, the workflow fails without a success message.
+Verification polls every 30 seconds for up to one hour, with 15-second request
+timeouts. Request time counts toward the retry deadline; an in-flight check can
+finish just after it. The job has a 65-minute limit to allow setup and notification.
+[NuGet validation and indexing](https://learn.microsoft.com/en-us/nuget/nuget-org/publish-a-package)
+usually take less than 15 minutes but can take longer. Upload acceptance does not
+mean the package is already indexed. If verification fails after the retry window,
+the workflow fails without a success message. Check NuGet's package validation
+status and service status before rerunning only the failed verification job.
 Manual validation/recovery dispatches verify availability but do not announce a
 new release. Rerunning a published-release event can send the notification again.
 Slack delivery is best-effort and does not roll back a published package. Check
