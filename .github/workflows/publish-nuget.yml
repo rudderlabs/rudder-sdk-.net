@@ -132,3 +132,50 @@ jobs:
             --api-key "$env:NUGET_API_KEY" `
             --skip-duplicate
           exit $LASTEXITCODE
+
+  verify-and-notify:
+    name: Verify NuGet availability and notify Slack
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout the workflow commit
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Verify the exact package on NuGet
+        id: verify
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: python3 .github/scripts/verify_nuget_release.py
+
+      - name: Prepare release notification
+        if: github.event_name == 'release'
+        env:
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_RELEASE_CHANNEL_ID }}
+          RELEASE_VERSION: ${{ steps.verify.outputs.version }}
+        run: |
+          jq -n \
+            --arg channel "$SLACK_CHANNEL_ID" \
+            --arg version "$RELEASE_VERSION" \
+            '{channel: $channel, text: (".NET SDK " + $version + " is available on NuGet: <https://www.nuget.org/packages/RudderAnalytics/" + $version + "|RudderAnalytics " + $version + ">\n<https://github.com/rudderlabs/rudder-sdk-.net/releases/tag/v" + $version + "|Release notes>\nCC: <!subteam^S03SW7DM8P3>"), unfurl_links: false, unfurl_media: false}' \
+            > "$RUNNER_TEMP/nuget-release-notification.json"
+
+      - name: Notify Slack of verified NuGet publication
+        if: github.event_name == 'release'
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        continue-on-error: true
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          errors: true
+          retries: rapid
+          payload-file-path: ${{ runner.temp }}/nuget-release-notification.json
