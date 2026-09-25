@@ -137,7 +137,7 @@ jobs:
     name: Verify NuGet availability and notify Slack
     needs: publish
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 65
     permissions:
       contents: read
     steps:
