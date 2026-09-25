@@ -61,9 +61,15 @@ The workflow validates the ref, restores/builds/packs on Windows, transfers the
 package artifact to the publish job, authenticates to NuGet, and pushes the package.
 Only the publish job receives `id-token: write` permission.
 
-The Slack `#releases` notification announces creation of the **GitHub release**.
-It can arrive before NuGet publication finishes. It is not proof that a package
-was published. Check both the publishing run and NuGet.
+The Slack `#releases` success notification runs only after publication succeeds
+and NuGet's public API lists the exact version and serves its package file.
+Verification retries up to 20 times, with 15-second pauses and 15-second request
+timeouts. If verification fails, the workflow fails without a success message.
+Manual validation/recovery dispatches verify availability but do not announce a
+new release. Rerunning a published-release event can send the notification again.
+Slack delivery is best-effort and does not roll back a published package. Check
+the notification step if no message arrives. Registry verification does not
+replace the signature and clean-consumer checks below.
 
 Tag pushes alone do not start the publishing workflow. Release Please uses a
 GitHub App token so its published-release event can start downstream workflows.
