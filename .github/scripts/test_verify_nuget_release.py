@@ -43,7 +43,7 @@ class VerifyNuGetReleaseTests(unittest.TestCase):
         missing_file = HTTPError("https://api.nuget.org", 404, "Not Found", {}, None)
         check = Mock(side_effect=[False, missing_file, True])
         sleep = Mock()
-        verifier.verify("2.0.3", attempts=3, check=check, sleep=sleep)
+        verifier.verify("2.0.3", check=check, sleep=sleep)
         self.assertEqual(check.call_count, 3)
         self.assertEqual(sleep.call_count, 2)
 
@@ -53,11 +53,18 @@ class VerifyNuGetReleaseTests(unittest.TestCase):
                               (ValueError("bad JSON"), "request failed")):
             with self.subTest(error=error):
                 check = Mock(side_effect=[error, error])
-                sleep = Mock()
+                elapsed = [0]
+
+                def advance(seconds):
+                    elapsed[0] += seconds
+
+                sleep = Mock(side_effect=advance)
                 with self.assertRaisesRegex(RuntimeError, reason):
-                    verifier.verify("2.0.3", attempts=2, check=check, sleep=sleep)
+                    verifier.verify("2.0.3", timeout=60, check=check,
+                                    sleep=sleep, clock=lambda: elapsed[0])
                 self.assertEqual(check.call_count, 2)
-                sleep.assert_called_once_with(30)
+                self.assertEqual(sleep.call_count, 2)
+                self.assertEqual(elapsed[0], 60)
 
     def test_default_window_allows_indexing_beyond_five_minutes(self):
         elapsed = [0]
@@ -80,7 +87,20 @@ class VerifyNuGetReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "not indexed"):
             verifier.verify("2.0.3", check=check, sleep=sleep, clock=lambda: elapsed[0])
         self.assertEqual(elapsed[0], 3600)
-        self.assertEqual(check.call_count, 121)
+        self.assertEqual(check.call_count, 120)
+
+    def test_last_sleep_stops_at_deadline_without_another_request(self):
+        elapsed = [0]
+
+        def sleep(seconds):
+            elapsed[0] += seconds
+
+        check = Mock(return_value=False)
+        with self.assertRaisesRegex(RuntimeError, "not indexed"):
+            verifier.verify("2.0.3", timeout=35, check=check,
+                            sleep=sleep, clock=lambda: elapsed[0])
+        self.assertEqual(elapsed[0], 35)
+        self.assertEqual(check.call_count, 2)
 
     def test_request_time_counts_toward_deadline(self):
         elapsed = [0]

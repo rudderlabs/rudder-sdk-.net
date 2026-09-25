@@ -43,10 +43,11 @@ def check_available(version, fetch=request):
     return True
 
 
-def verify(version, attempts=121, delay=30, timeout=3600, check=check_available,
+def verify(version, delay=30, timeout=3600, check=check_available,
            sleep=time.sleep, clock=time.monotonic):
     deadline = clock() + timeout
-    for attempt in range(1, attempts + 1):
+    reason = "verification deadline reached"
+    while clock() < deadline:
         try:
             if check(version):
                 print(f"RudderAnalytics {version} is available on NuGet.", flush=True)
@@ -57,12 +58,11 @@ def verify(version, attempts=121, delay=30, timeout=3600, check=check_available,
         except (URLError, TimeoutError, OSError, ValueError, KeyError, StopIteration) as error:
             reason = f"NuGet verification request failed ({type(error).__name__})"
         remaining = deadline - clock()
-        print(f"Attempt {attempt}/{attempts}: {reason}; "
+        print(f"Waiting for NuGet: {reason}; "
               f"{max(0, remaining):.0f}s remaining", flush=True)
         if remaining <= 0:
             break
-        if attempt < attempts:
-            sleep(min(delay, remaining))
+        sleep(min(delay, remaining))
     raise RuntimeError(f"Could not verify RudderAnalytics {version}: {reason}")
 
 
