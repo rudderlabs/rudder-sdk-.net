@@ -1,5 +1,7 @@
 name: Build and Unit Test Checks
 on:
+  push:
+    branches: [ master ]
   pull_request:
     branches: [ master ]
     types: ['opened', 'reopened', 'synchronize']
@@ -76,9 +78,9 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       shell: powershell
       run: |
-        .\.sonar\scanner\dotnet-sonarscanner begin /k:"rudderlabs_rudder-sdk-.net2" /o:"rudderlabs" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
+        .\.sonar\scanner\dotnet-sonarscanner begin /k:"rudderlabs_rudder-sdk-.net2" /o:"rudderlabs" /d:sonar.login="$env:SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io"
         dotnet build RudderAnalytics/RudderAnalytics.csproj --configuration Release --no-restore
-        .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+        .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.login="$env:SONAR_TOKEN"
 
   build_and_test_netcoreapp21:
     name: Build and Quality Check for .NetCoreApp2.1
