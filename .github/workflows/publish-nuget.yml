@@ -117,8 +117,18 @@ jobs:
           user: ${{ secrets.NUGET_USER }}
 
       - name: Publish package
-        run: >-
-          dotnet nuget push artifacts/*.nupkg
-          --source https://api.nuget.org/v3/index.json
-          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
-          --skip-duplicate
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          $packages = @(Get-ChildItem -Path artifacts -Filter '*.nupkg' -File)
+          if ($packages.Count -ne 1) {
+            throw "Expected exactly one NuGet package in artifacts; found $($packages.Count)."
+          }
+
+          $packagePath = $packages[0].FullName
+          dotnet nuget push "$packagePath" `
+            --source https://api.nuget.org/v3/index.json `
+            --api-key "$env:NUGET_API_KEY" `
+            --skip-duplicate
+          exit $LASTEXITCODE
