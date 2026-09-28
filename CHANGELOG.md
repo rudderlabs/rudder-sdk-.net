@@ -1,5 +1,12 @@
 #
 
+## [2.0.4](https://github.com/rudderlabs/rudder-sdk-.net/compare/v2.0.3...v2.0.4) (2026-09-28)
+
+
+### Miscellaneous
+
+* allow for nuget indexing delays ([#51](https://github.com/rudderlabs/rudder-sdk-.net/issues/51)) ([ba70edc](https://github.com/rudderlabs/rudder-sdk-.net/commit/ba70edc0ed4b2d3135faef1948016dd81300008e))
+
 ## [2.0.3](https://github.com/rudderlabs/rudder-sdk-.net/compare/v2.0.2...v2.0.3) (2026-09-25)
 
 
