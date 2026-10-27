@@ -3,8 +3,8 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: "monthly"
+    open-pull-requests-limit: 0
     cooldown:
       default-days: 7
     groups:
@@ -16,8 +16,8 @@ updates:
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: "monthly"
+    open-pull-requests-limit: 0
     cooldown:
       default-days: 7
     groups:
@@ -29,8 +29,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/Samples/Sloth.Basic"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: "monthly"
+    open-pull-requests-limit: 0
     cooldown:
       default-days: 7
     groups:
@@ -42,8 +42,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/Samples/Sloth.Enterprise"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: "monthly"
+    open-pull-requests-limit: 0
     cooldown:
       default-days: 7
     groups:
