@@ -117,9 +117,26 @@ class VerifyNuGetReleaseTests(unittest.TestCase):
                             sleep=sleep, clock=lambda: elapsed[0])
         self.assertEqual(elapsed[0], 120)
 
+    def test_historical_versions_use_resolved_metadata_not_local_manifest(self):
+        # Older releases may lack the verifier or carry one without a version guard.
+        for version in ("2.0.2", "2.0.3"):
+            with self.subTest(version=version), \
+                    patch.dict(verifier.os.environ, {"EXPECTED_VERSION": version, "RELEASE_TAG": f"v{version}"}), \
+                    patch.object(verifier, "verify") as check:
+                verifier.main()
+                check.assert_called_once_with(version)
+
+    def test_invalid_or_missing_release_metadata_fails_before_network(self):
+        for version, tag in (("", "v2.0.3"), ("2.0.2", "v2.0.3"), ("2.0.3", "")):
+            with self.subTest(version=version, tag=tag), \
+                    patch.dict(verifier.os.environ, {"EXPECTED_VERSION": version, "RELEASE_TAG": tag}), \
+                    patch.object(verifier, "verify") as check:
+                with self.assertRaises(ValueError):
+                    verifier.main()
+                check.assert_not_called()
+
     def test_failed_verification_does_not_write_success_output(self):
-        with patch.object(verifier.Path, "read_text", return_value="2.0.3"), \
-                patch.dict(verifier.os.environ, {"GITHUB_OUTPUT": "unused", "RELEASE_TAG": "v2.0.3"}), \
+        with patch.dict(verifier.os.environ, {"GITHUB_OUTPUT": "unused", "RELEASE_TAG": "v2.0.3", "EXPECTED_VERSION": "2.0.3"}), \
                 patch.object(verifier, "verify", side_effect=RuntimeError("unavailable")), \
                 patch("builtins.open") as output:
             with self.assertRaises(RuntimeError):

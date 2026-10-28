@@ -32,7 +32,9 @@ builds and publishes `RudderAnalytics` when a GitHub release is published.
 4. Confirm that the policy is active. If NuGet shows a temporary activation
    window, complete validation before that window expires.
 5. Confirm that the GitHub `release` environment permits the `master` branch and
-   `v*` tags. Retain any configured reviewer requirements.
+   `v*` tags. Retain any configured reviewer requirements. Manual retry executes
+   the updated workflow on `master` even though the package is built from its
+   selected release tag.
 6. Set the environment secret `NUGET_USER` to the NuGet profile username that owns
    the policy and has the required package-owner access. Do not substitute the
    email address or organization name unless it is also the actual username.
@@ -61,21 +63,29 @@ The workflow validates the ref, restores/builds/packs on Windows, transfers the
 package artifact to the publish job, authenticates to NuGet, and pushes the package.
 Only the publish job receives `id-token: write` permission.
 
-The Slack `#releases` success notification runs only after publication succeeds
-and NuGet's public API lists the exact version and serves its package file.
+The Slack `#releases` success notification runs only for published-release events,
+after NuGet's public API lists the exact version, serves its package file, and
+full central published-package E2E passes delivery and cleanup acceptance.
 Verification polls every 30 seconds for up to one hour, with 15-second request
 timeouts. Request time counts toward the retry deadline; an in-flight check can
-finish just after it. The job has a 65-minute limit to allow setup and notification.
+finish just after it. The verify job has a 65-minute limit.
 [NuGet validation and indexing](https://learn.microsoft.com/en-us/nuget/nuget-org/publish-a-package)
-usually take less than 15 minutes but can take longer. Upload acceptance does not
-mean the package is already indexed. If verification fails after the retry window,
-the workflow fails without a success message. Check NuGet's package validation
-status and service status before rerunning only the failed verification job.
-Manual validation/recovery dispatches verify availability but do not announce a
-new release. Rerunning a published-release event can send the notification again.
-Slack delivery is best-effort and does not roll back a published package. Check
-the notification step if no message arrives. Registry verification does not
-replace the signature and clean-consumer checks below.
+usually take less than 15 minutes but can take longer. Upload acceptance (including
+`--skip-duplicate`) does not mean the package is indexed or E2E-accepted. If
+verification or central acceptance fails, the published package remains on NuGet,
+the workflow fails without a success message, and nothing is automatically
+unpublished. Use validation-only recovery below instead of republishing. Rerunning
+a published-release event can send the notification again. Slack delivery is
+best-effort and does not roll back a published package. Registry verification
+and E2E do not replace the signature and clean-consumer checks below.
+
+**Rollout dependency (SDK-5961/SDK-5962):** This draft deliberately fails the
+published acceptance job until the central runner supports published mode and the
+shared action's reviewed, pinned commit supports exact `package-version` and
+origin SHA. Do not merge it before those dependencies are on main and the fail-closed
+guard is replaced with the fully pinned action call. Implementation/static tests
+are not hosted live acceptance; live pre/post-publication testing is deferred to
+the next normal SDK release. Do not publish or dispatch live E2E to test this draft.
 
 Tag pushes alone do not start the publishing workflow. Release Please uses a
 GitHub App token so its published-release event can start downstream workflows.
@@ -122,19 +132,35 @@ replace the repository's tests for all supported target frameworks.
   rerun the failed publishing job. The new attempt obtains a fresh short-lived key.
 - **No publishing run exists:** check the Release Please run and its GitHub App
   credentials. Publishing requires a published-release event, not a tag push.
-- **Manual recovery is needed:** dispatch the existing workflow against the
-  intended release tag. The tag must contain `publish-nuget.yml`. Prefer rerunning
-  the original release run when it exists.
+- **Publication failed before upload:** after fixing the issue, explicitly
+  select publish mode from the updated workflow on `master`, targeting the
+  published release tag. The tag (not today's master) supplies the packed commit
+  and version. This path still requests `release` environment approval and may
+  skip an existing version; prefer the original release run if appropriate.
 
   ```sh
-  gh workflow run publish-nuget.yml \
-    --repo rudderlabs/rudder-sdk-.net --ref vX.Y.Z
+  gh workflow run publish-nuget.yml --repo rudderlabs/rudder-sdk-.net \
+    --ref master -f mode=publish -f release_tag=vX.Y.Z
   ```
 
-  The workflow also permits dispatch from `master`. This builds the version
-  currently on that branch, which may already exist on NuGet. It must not be
-  mistaken for a new release or a full publishing test when `--skip-duplicate`
-  skips the upload. Tags created before the workflow was added cannot run it.
+- **Publication succeeded but verification or E2E failed:** run only exact public
+  verification and full central published-mode E2E. This path does not pack,
+  authenticate to NuGet, upload, recreate tags, or announce a release.
+
+  ```sh
+  gh workflow run publish-nuget.yml --repo rudderlabs/rudder-sdk-.net \
+    --ref master -f mode=validate-only -f release_tag=vX.Y.Z
+  ```
+
+  The **workflow execution ref** must be `master`, never `--ref vX.Y.Z` (which
+  could execute an older publishing workflow). The **release_tag input** names
+  the published GitHub release, whose tag resolves to the immutable commit and
+  matching `VERSION`; a missing, unpublished, or mismatched release fails before
+  any publishing work. Public verification runs the current executing workflow's
+  verifier (also for older tags that lack it), using the version resolved from
+  the tag's `VERSION`, not the workflow checkout's `VERSION`. No mode uses master's
+  current package version as a fallback. A green validation-only run confirms
+  acceptance but intentionally sends no release-complete notification.
 
 - **A version already exists:** inspect the existing package. NuGet versions
   cannot be overwritten. Publish a new patch version for package defects; do not

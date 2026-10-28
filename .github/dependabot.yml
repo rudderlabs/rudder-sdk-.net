@@ -3,24 +3,29 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     open-pull-requests-limit: 0
     cooldown:
       default-days: 7
+      exclude: ["rudderlabs/*"]
     groups:
-      github-actions-minor-patch:
-        applies-to: version-updates
+      github-actions-security:
+        applies-to: security-updates
         patterns: ["*"]
-        update-types: ["minor", "patch"]
+      github-actions-updates:
+        patterns: ["*"]
     labels: ["dependencies", "github-actions"]
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     open-pull-requests-limit: 0
     cooldown:
       default-days: 7
     groups:
+      nuget-security:
+        applies-to: security-updates
+        patterns: ["*"]
       nuget-minor-patch:
         applies-to: version-updates
         patterns: ["*"]
@@ -29,26 +34,28 @@ updates:
   - package-ecosystem: "docker"
     directory: "/Samples/Sloth.Basic"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     open-pull-requests-limit: 0
     cooldown:
       default-days: 7
+      exclude: ["rudderstack/*"]
+    ignore:
+      - dependency-name: "rudderstack/*"
     groups:
-      docker-minor-patch:
-        applies-to: version-updates
+      docker-updates:
         patterns: ["*"]
-        update-types: ["minor", "patch"]
     labels: ["dependencies", "docker"]
   - package-ecosystem: "docker"
     directory: "/Samples/Sloth.Enterprise"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     open-pull-requests-limit: 0
     cooldown:
       default-days: 7
+      exclude: ["rudderstack/*"]
+    ignore:
+      - dependency-name: "rudderstack/*"
     groups:
-      docker-minor-patch:
-        applies-to: version-updates
+      docker-updates:
         patterns: ["*"]
-        update-types: ["minor", "patch"]
     labels: ["dependencies", "docker"]
