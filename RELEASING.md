@@ -65,9 +65,11 @@ The Slack `#releases` success notification runs only after publication succeeds,
 NuGet's public API lists the exact version and serves its package file, and full
 published-package E2E accepts delivery and cleanup. If validation fails or is
 incomplete after upload, the workflow posts "published; validation failed or
-incomplete" instead. Each release-event notification has a short root and a
-thread reply containing package, release, run links, and check results. Manual
-validation-only retries do not announce a release.
+incomplete" instead. A ref, pack, or upload failure reports failed or
+unconfirmed publication. A successful upload without exact public registry
+verification remains unconfirmed. Each release-event notification has a short
+root and a thread reply containing package, release, run links, and check
+results. Manual validation-only retries do not announce a release.
 Verification polls every 30 seconds for up to one hour, with 15-second request
 timeouts. Request time counts toward the retry deadline; an in-flight check can
 finish just after it. The job has a 65-minute limit to allow setup and notification.

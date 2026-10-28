@@ -1,5 +1,6 @@
 """Release path regressions without publishing or posting to Slack."""
 
+import json
 import os
 from pathlib import Path
 import re
@@ -22,6 +23,23 @@ def job(workflow, name):
         raise AssertionError(f"Missing job {name}")
     next_job = re.search(r"^  [\w-]+:\s*\n", workflow[match.end():], re.MULTILINE)
     return workflow[match.end():match.end() + next_job.start() if next_job else None]
+
+
+def run_step(job_body, name):
+    match = re.search(rf"^      - name: {re.escape(name)}\n", job_body, re.MULTILINE)
+    if match is None:
+        raise AssertionError(f"Missing step {name}")
+    next_step = re.search(r"^      - name: ", job_body[match.end():], re.MULTILINE)
+    section = job_body[match.end():match.end() + next_step.start() if next_step else None]
+    run = re.search(r"^        run: \|\n", section, re.MULTILINE)
+    if run is None:
+        raise AssertionError(f"Missing script for {name}")
+    lines = []
+    for line in section[run.end():].splitlines():
+        if not line.startswith("          "):
+            break
+        lines.append(line[10:])
+    return "\n".join(lines)
 
 
 class PublishNugetWorkflowTests(unittest.TestCase):
@@ -63,8 +81,8 @@ class PublishNugetWorkflowTests(unittest.TestCase):
         self.assertIn("needs: verify-publication", acceptance)
         self.assertIn("needs.verify-publication.outputs.version", acceptance)
         notification = job(PUBLISHER, "notify-slack")
-        self.assertIn("github.event_name == 'release'", notification)
-        self.assertIn("needs.publish.result == 'success'", notification)
+        self.assertIn("needs: [validate-ref, pack, publish, verify-publication, published-e2e]", notification)
+        self.assertIn("if: ${{ always() && github.event_name == 'release' }}", notification)
         self.assertIn("published; validation failed or incomplete", notification)
         self.assertIn("date -u +%Y-%m-%d", notification)
         self.assertIn("<!subteam^S03SW7DM8P3>", notification)
@@ -79,6 +97,51 @@ class PublishNugetWorkflowTests(unittest.TestCase):
         self.assertNotIn("NuGet/login", E2E)
         self.assertNotIn("dotnet nuget push", E2E)
         self.assertNotIn("slack-github-action", E2E)
+
+    def test_final_notifications_distinguish_negative_outcomes(self):
+        notification = job(PUBLISHER, "notify-slack")
+        summary_script = run_step(notification, "Record publication and acceptance separately")
+        root_script = run_step(notification, "Prepare release notification")
+        thread_script = run_step(notification, "Prepare release details thread")
+        cases = (
+            (("success", "success", "success", "success", "success"), "released; validation complete"),
+            (("success", "success", "success", "success", "failure"), "published; validation failed or incomplete"),
+            (("success", "success", "success", "failure", "skipped"), "publication unconfirmed; validation incomplete"),
+            (("success", "success", "failure", "skipped", "skipped"), "publication failed or unconfirmed"),
+            (("success", "failure", "skipped", "skipped", "skipped"), "publication failed before upload"),
+            (("failure", "skipped", "skipped", "skipped", "skipped"), "publication failed before upload"),
+        )
+        for results, expected in cases:
+            with self.subTest(results=results), tempfile.TemporaryDirectory() as directory:
+                environment = os.environ.copy()
+                environment.update(zip(("REF_RESULT", "PACK_RESULT", "PUBLISH_RESULT",
+                                        "PUBLIC_VERIFICATION", "ACCEPTANCE_RESULT"), results))
+                environment.update(RUNNER_TEMP=directory, GITHUB_STEP_SUMMARY=str(Path(directory, "summary")),
+                                   SLACK_CHANNEL_ID="C123", RELEASE_TAG="v1.2.3",
+                                   SLACK_RESPONSE='{"ok":true,"ts":"1234567890.123456"}',
+                                   RELEASE_RUN_URL="https://github.com/rudderlabs/rudder-sdk-.net/actions/runs/123")
+                for script in (summary_script, root_script, thread_script):
+                    subprocess.run(["bash", "-e", "-c", script], env=environment,
+                                   capture_output=True, text=True, check=True)
+                root = json.loads(Path(directory, "nuget-release-notification.json").read_text())
+                thread = json.loads(Path(directory, "nuget-release-thread.json").read_text())
+                summary = Path(directory, "summary").read_text()
+                self.assertIn(expected, root["text"])
+                self.assertNotIn("https://", root["text"])
+                self.assertRegex(root["text"], r"\.NET SDK v1\.2\.3 \| \d{4}-\d{2}-\d{2} \|")
+                self.assertIn("<!subteam^S03SW7DM8P3>", root["text"])
+                self.assertEqual(thread["thread_ts"], "1234567890.123456")
+                self.assertFalse(thread["reply_broadcast"])
+                self.assertFalse(thread["unfurl_links"])
+                self.assertFalse(thread["unfurl_media"])
+                self.assertIn(f"Exact public registry artifact: {results[3]}", thread["text"])
+                self.assertIn(f"Pack: {results[1]}", thread["text"])
+                self.assertIn(f"NuGet publish: {results[2]}", thread["text"])
+                self.assertIn(f"Full E2E delivery and cleanup: {results[4]}", thread["text"])
+                if results[3] == "success" and results[4] != "success":
+                    self.assertIn("remains published", summary)
+                else:
+                    self.assertNotIn("remains published", summary)
 
 
 if __name__ == "__main__":

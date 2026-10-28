@@ -182,8 +182,8 @@ jobs:
 
   notify-slack:
     name: Report NuGet release acceptance
-    needs: [publish, verify-publication, published-e2e]
-    if: ${{ always() && github.event_name == 'release' && needs.publish.result == 'success' }}
+    needs: [validate-ref, pack, publish, verify-publication, published-e2e]
+    if: ${{ always() && github.event_name == 'release' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -195,16 +195,26 @@ jobs:
 
       - name: Record publication and acceptance separately
         env:
+          REF_RESULT: ${{ needs.validate-ref.result }}
+          PACK_RESULT: ${{ needs.pack.result }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
           PUBLIC_VERIFICATION: ${{ needs.verify-publication.result }}
           ACCEPTANCE_RESULT: ${{ needs.published-e2e.result }}
         run: |
-          echo "NuGet publish step completed (upload or duplicate skip). Public verification: $PUBLIC_VERIFICATION. Published-package E2E: $ACCEPTANCE_RESULT." >> "$GITHUB_STEP_SUMMARY"
-          echo 'The package remains published if acceptance fails. Retry published-sdk-e2e.yml at the same release tag.' >> "$GITHUB_STEP_SUMMARY"
+          echo "Release ref: $REF_RESULT. Pack: $PACK_RESULT. NuGet publish: $PUBLISH_RESULT. Public registry: $PUBLIC_VERIFICATION. Published-package E2E: $ACCEPTANCE_RESULT." >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$PUBLIC_VERIFICATION" == success && "$ACCEPTANCE_RESULT" != success ]]; then
+            echo 'The publicly verified package remains published. Retry published-sdk-e2e.yml at the same release tag.' >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$PUBLIC_VERIFICATION" != success ]]; then
+            echo 'Publication is not confirmed by the exact public registry check. Investigate before retrying any upload.' >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Prepare release notification
         env:
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_RELEASE_CHANNEL_ID }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REF_RESULT: ${{ needs.validate-ref.result }}
+          PACK_RESULT: ${{ needs.pack.result }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
           PUBLIC_VERIFICATION: ${{ needs.verify-publication.result }}
           ACCEPTANCE_RESULT: ${{ needs.published-e2e.result }}
         run: |
@@ -212,8 +222,14 @@ jobs:
           release_date="$(date -u +%Y-%m-%d)"
           if [[ "$PUBLIC_VERIFICATION" == success && "$ACCEPTANCE_RESULT" == success ]]; then
             status='released; validation complete'
-          else
+          elif [[ "$PUBLIC_VERIFICATION" == success ]]; then
             status='published; validation failed or incomplete'
+          elif [[ "$REF_RESULT" != success || "$PACK_RESULT" != success ]]; then
+            status='publication failed before upload'
+          elif [[ "$PUBLISH_RESULT" != success ]]; then
+            status='publication failed or unconfirmed'
+          else
+            status='publication unconfirmed; validation incomplete'
           fi
           jq -n \
             --arg channel "$SLACK_CHANNEL_ID" \
@@ -242,6 +258,9 @@ jobs:
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_RELEASE_CHANNEL_ID }}
           SLACK_RESPONSE: ${{ steps.slack_root.outputs.response }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REF_RESULT: ${{ needs.validate-ref.result }}
+          PACK_RESULT: ${{ needs.pack.result }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
           PUBLIC_VERIFICATION: ${{ needs.verify-publication.result }}
           ACCEPTANCE_RESULT: ${{ needs.published-e2e.result }}
           RELEASE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -258,10 +277,13 @@ jobs:
             --arg version "$version" \
             --arg tag "$RELEASE_TAG" \
             --arg run_url "$RELEASE_RUN_URL" \
+            --arg ref "$REF_RESULT" \
+            --arg pack "$PACK_RESULT" \
+            --arg publish "$PUBLISH_RESULT" \
             --arg public "$PUBLIC_VERIFICATION" \
             --arg acceptance "$ACCEPTANCE_RESULT" \
             '{channel: $channel, thread_ts: $thread_ts, reply_broadcast: false, unfurl_links: false, unfurl_media: false,
-              text: ("<https://www.nuget.org/packages/RudderAnalytics/" + $version + "|NuGet package> | <https://github.com/rudderlabs/rudder-sdk-.net/releases/tag/" + $tag + "|Release notes> | <" + $run_url + "|Release checks>\nExact public registry artifact: " + $public + "\nFull E2E delivery and cleanup: " + $acceptance)}' \
+              text: ("<https://www.nuget.org/packages/RudderAnalytics/" + $version + "|NuGet version> | <https://github.com/rudderlabs/rudder-sdk-.net/releases/tag/" + $tag + "|Release notes> | <" + $run_url + "|Release checks>\nRelease ref: " + $ref + " | Pack: " + $pack + " | NuGet publish: " + $publish + "\nExact public registry artifact: " + $public + "\nFull E2E delivery and cleanup: " + $acceptance)}' \
             > "$RUNNER_TEMP/nuget-release-thread.json"
 
       - name: Reply with release checks
