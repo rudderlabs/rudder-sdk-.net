@@ -19,14 +19,15 @@ permissions:
 # Do not cancel live validation; the central workflow owns locking and cleanup.
 jobs:
   validate:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 55
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
       - name: Require an exact release tag
+        id: release
         env:
           PACKAGE_VERSION: ${{ inputs.package-version || github.ref_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
@@ -42,9 +43,10 @@ jobs:
             echo 'Select the existing stable release tag that matches the exact package version.' >&2
             exit 1
           fi
+          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
       - name: Create a central validation token
         id: token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_PRIVATE_KEY }}
@@ -56,5 +58,5 @@ jobs:
         uses: rudderlabs/github-action-sdk-e2e@855d3e174e917aab71b93a862c7e74592904d10e
         with:
           token: ${{ steps.token.outputs.token }}
-          package-version: ${{ inputs.package-version || github.ref_name }}
+          package-version: ${{ steps.release.outputs.version }}
           suite: full
