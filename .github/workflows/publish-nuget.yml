@@ -3,38 +3,18 @@ name: Publish NuGet Package
 
 "on":
   workflow_dispatch:
-    inputs:
-      mode:
-        description: Publish the tagged release or validate its exact public package without uploading
-        required: true
-        type: choice
-        options: [publish, validate-only]
-      release_tag:
-        description: Published GitHub release tag (vX.Y.Z); execute this workflow on master
-        required: true
-        type: string
   release:
     types: [published]
 
 permissions:
   contents: read
 
-# Never cancel acceptance while the central runner owns live locks or cleanup.
-concurrency:
-  group: nuget-release-${{ github.event.release.tag_name || inputs.release_tag || github.ref }}
-  cancel-in-progress: false
-
 jobs:
   validate-ref:
-    name: Resolve published release and origin commit
+    name: Validate publish ref
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     permissions:
       contents: read
-    outputs:
-      version: ${{ steps.release.outputs.version }}
-      sha: ${{ steps.release.outputs.sha }}
-      tag: ${{ steps.release.outputs.tag }}
 
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -42,24 +22,24 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Checkout release validation code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          persist-credentials: false
+      - name: Confirm manual dispatch ref
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]]; then
+            exit 0
+          fi
 
-      - name: Resolve published release tag, version and commit
-        id: release
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
-        run: python3 .github/scripts/resolve_nuget_release.py
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            exit 0
+          fi
+
+          echo "Manual publishing requires an existing release tag. Use published-sdk-e2e.yml to retry validation."
+          exit 1
 
   pack:
     name: Pack RudderAnalytics
     needs: validate-ref
-    if: github.event_name == 'release' || inputs.mode == 'publish'
     runs-on: windows-2022
-    timeout-minutes: 45
     permissions:
       contents: read
 
@@ -70,9 +50,8 @@ jobs:
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          ref: ${{ needs.validate-ref.outputs.sha }}
           persist-credentials: false
 
       - name: Setup .NET
@@ -96,18 +75,25 @@ jobs:
           --no-build
           --output artifacts
 
-      - name: Confirm packed artifact matches the published release
+      - name: Check packed version matches the release tag
         shell: pwsh
-        env:
-          RELEASE_VERSION: ${{ needs.validate-ref.outputs.version }}
         run: |
-          $packages = @(Get-ChildItem -Path artifacts -Filter '*.nupkg' -File)
-          if ($packages.Count -ne 1 -or $packages[0].Name -cne "RudderAnalytics.$env:RELEASE_VERSION.nupkg") {
-            throw 'Packed artifact does not match the exact published release version.'
-          }
+          $packages = @(Get-ChildItem artifacts -Filter '*.nupkg' -File)
+          if ($packages.Count -ne 1) { throw 'Expected exactly one package.' }
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($packages[0].FullName)
+          try {
+            $entry = @($archive.Entries | Where-Object FullName -like '*.nuspec')
+            if ($entry.Count -ne 1) { throw 'Expected exactly one package manifest.' }
+            $reader = [System.IO.StreamReader]::new($entry[0].Open())
+            try { [xml]$manifest = $reader.ReadToEnd() } finally { $reader.Dispose() }
+            $version = $manifest.package.metadata.version
+            if ($env:GITHUB_REF_NAME -cne "v$version") {
+              throw 'Packed package version does not match the selected release tag.'
+            }
+          } finally { $archive.Dispose() }
 
       - name: Upload package artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: rudderanalytics-nuget-package
           path: artifacts/*.nupkg
@@ -115,10 +101,8 @@ jobs:
 
   publish:
     name: Publish RudderAnalytics to NuGet
-    needs: [validate-ref, pack]
-    if: github.event_name == 'release' || inputs.mode == 'publish'
+    needs: pack
     runs-on: windows-2022
-    timeout-minutes: 30
     environment: release
     permissions:
       contents: read
@@ -162,47 +146,49 @@ jobs:
             --skip-duplicate
           exit $LASTEXITCODE
 
-  verify:
-    name: Verify exact public NuGet package
-    needs: [validate-ref, publish]
-    if: >-
-      always() && needs.validate-ref.result == 'success' &&
-      (needs.publish.result == 'success' ||
-       (github.event_name == 'workflow_dispatch' && inputs.mode == 'validate-only' &&
-        needs.publish.result == 'skipped'))
+  verify-publication:
+    name: Verify NuGet availability
+    outputs:
+      version: ${{ steps.verify.outputs.version }}
+    needs: publish
     runs-on: ubuntu-latest
     timeout-minutes: 65
     permissions:
       contents: read
-    outputs:
-      version: ${{ steps.verify.outputs.version }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
-      # Run the verifier from the executing workflow, not from an older release
-      # tag whose commit may lack the script or its exact-version guard.
-      - name: Checkout release verification code
+      - name: Checkout the workflow commit
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          ref: ${{ github.workflow_sha }}
           persist-credentials: false
 
       - name: Verify the exact package on NuGet
         id: verify
         env:
-          RELEASE_TAG: ${{ needs.validate-ref.outputs.tag }}
-          EXPECTED_VERSION: ${{ needs.validate-ref.outputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
         run: python3 .github/scripts/verify_nuget_release.py
 
-  accept-published:
-    name: Full published-package E2E delivery and cleanup acceptance
-    needs: [validate-ref, verify]
-    if: needs.verify.result == 'success'
+
+  published-e2e:
+    name: Accept exact published package
+    needs: verify-publication
+    permissions:
+      contents: read
+    uses: ./.github/workflows/published-sdk-e2e.yml
+    with:
+      package-version: ${{ needs.verify-publication.outputs.version }}
+    secrets:
+      RELEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PRIVATE_KEY }}
+
+  notify-slack:
+    name: Report NuGet release acceptance
+    needs: [publish, verify-publication, published-e2e]
+    if: ${{ always() && github.event_name == 'release' && needs.publish.result == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 55
     permissions:
       contents: read
     steps:
@@ -211,44 +197,19 @@ jobs:
         with:
           egress-policy: audit
 
-      # SDK-5961/SDK-5962: do not dispatch an auto/source candidate instead of
-      # exact published mode. Replace this guard only after the reviewed shared
-      # action SHA is on main and package-version + origin SHA are supported.
-      - name: Require exact published-mode shared action before dispatch
-        shell: bash
+      - name: Record publication and acceptance separately
         env:
-          RELEASE_VERSION: ${{ needs.verify.outputs.version }}
-          RELEASE_SHA: ${{ needs.validate-ref.outputs.sha }}
+          PUBLIC_VERIFICATION: ${{ needs.verify-publication.result }}
+          ACCEPTANCE_RESULT: ${{ needs.published-e2e.result }}
         run: |
-          echo "Published RudderAnalytics $RELEASE_VERSION ($RELEASE_SHA) is verified on NuGet, but exact full E2E acceptance requires SDK-5961/SDK-5962." >&2
-          exit 1
-
-      # RESOLVE: Replace with the reviewed full SHA of rudderlabs/github-action-sdk-e2e
-      # after SDK-5961/SDK-5962 merge; pass suite: full, package-version:
-      # needs.verify.outputs.version, and the resolved release SHA per its interface.
-      # Mint a token here (not in PR checks): owner: rudderlabs,
-      # repositories: rudder-sdk-e2e-tests, permission-actions: write, using
-      # vars.RELEASE_APP_CLIENT_ID and secrets.RELEASE_PRIVATE_KEY.
-
-  notify:
-    name: Notify verified and accepted release
-    needs: [verify, accept-published]
-    if: >-
-      github.event_name == 'release' && needs.verify.result == 'success' &&
-      needs.accept-published.result == 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions: {}
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
+          echo "NuGet upload completed. Public verification: $PUBLIC_VERIFICATION. Published-package E2E: $ACCEPTANCE_RESULT." >> "$GITHUB_STEP_SUMMARY"
+          echo 'The package remains published if acceptance fails. Retry published-sdk-e2e.yml at the same release tag.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Prepare release notification
+        if: needs.verify-publication.result == 'success' && needs.published-e2e.result == 'success'
         env:
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_RELEASE_CHANNEL_ID }}
-          RELEASE_VERSION: ${{ needs.verify.outputs.version }}
+          RELEASE_VERSION: ${{ needs.verify-publication.outputs.version }}
         run: |
           jq -n \
             --arg channel "$SLACK_CHANNEL_ID" \
@@ -256,7 +217,8 @@ jobs:
             '{channel: $channel, text: (".NET SDK " + $version + " is available on NuGet: <https://www.nuget.org/packages/RudderAnalytics/" + $version + "|RudderAnalytics " + $version + ">\n<https://github.com/rudderlabs/rudder-sdk-.net/releases/tag/v" + $version + "|Release notes>\nCC: <!subteam^S03SW7DM8P3>"), unfurl_links: false, unfurl_media: false}' \
             > "$RUNNER_TEMP/nuget-release-notification.json"
 
-      - name: Notify Slack of verified and accepted NuGet publication
+      - name: Notify Slack of verified NuGet publication
+        if: needs.verify-publication.result == 'success' && needs.published-e2e.result == 'success'
         uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         continue-on-error: true
         with:

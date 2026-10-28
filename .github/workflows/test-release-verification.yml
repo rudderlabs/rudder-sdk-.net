@@ -25,8 +25,5 @@ jobs:
       with:
         persist-credentials: false
 
-    - name: Install workflow test parser
-      run: python3 -m pip install 'PyYAML==6.0.2'
-
-    - name: Test release provenance, ordering and NuGet verification without publishing
+    - name: Test NuGet verification without publishing or Slack access
       run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v

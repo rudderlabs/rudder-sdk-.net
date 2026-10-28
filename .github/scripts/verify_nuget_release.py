@@ -2,6 +2,7 @@
 
 import json
 import os
+from pathlib import Path
 import re
 import time
 from urllib.error import HTTPError, URLError
@@ -66,10 +67,10 @@ def verify(version, delay=30, timeout=3600, check=check_available,
 
 
 def main():
-    version = os.environ.get("EXPECTED_VERSION", "")
+    version = Path("VERSION").read_text().strip()
     tag = os.environ.get("RELEASE_TAG", "")
-    if not tag:
-        raise ValueError("A resolved release tag is required")
+    if os.environ.get("GITHUB_EVENT_NAME") == "release" and not tag:
+        raise ValueError("Release event is missing its tag")
     normalized = validate_version(version, tag)
     verify(normalized)
     if os.environ.get("GITHUB_OUTPUT"):
