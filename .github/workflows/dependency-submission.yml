@@ -1,0 +1,110 @@
+name: NuGet Dependency Submission
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '**/*.csproj'
+      - '**/packages.config'
+      - '**/*.props'
+      - '**/*.targets'
+      - '**/NuGet.Config'
+      - '**/nuget.config'
+      - 'global.json'
+      - '.github/workflows/dependency-submission.yml'
+  pull_request:
+    paths:
+      - '**/*.csproj'
+      - '**/packages.config'
+      - '**/*.props'
+      - '**/*.targets'
+      - '**/NuGet.Config'
+      - '**/nuget.config'
+      - 'global.json'
+      - '.github/workflows/dependency-submission.yml'
+  schedule:
+    - cron: '39 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resolve-dependencies:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore and check every SDK-style project
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+          import subprocess
+          import xml.etree.ElementTree as ET
+
+          # Legacy packages.config projects remain visible to the NuGet detector.
+          legacy = {'Test.Net35/Test.Net35.csproj', 'Test.UniversalApp/Test.UniversalApp.csproj'}
+          projects = list(Path('.').rglob('*.csproj'))
+          if not projects:
+              raise SystemExit('No projects found')
+          for project in projects:
+              root = ET.parse(project).getroot()
+              if not root.get('Sdk'):
+                  if project.as_posix() not in legacy:
+                      raise SystemExit(f'Unclassified legacy project: {project}')
+                  print(f'Legacy packages.config inventory: {project}')
+                  continue
+              subprocess.run(['dotnet', 'restore', str(project), '--force'], check=True)
+              assets = json.loads((project.parent / 'obj/project.assets.json').read_text())
+              frameworks = [e.text for e in root.iter() if e.tag in ('TargetFramework', 'TargetFrameworks')]
+              expected = set(';'.join(frameworks).split(';'))
+              if not expected.issubset(assets['project']['frameworks']):
+                  raise SystemExit(f'Missing target framework inventory: {project}')
+              packages = [p for p in assets['libraries'].values() if p['type'] == 'package']
+              if not packages or not assets['targets']:
+                  raise SystemExit(f'Empty restore inventory: {project}')
+              print(f'{project}: {len(packages)} packages, {len(assets["targets"])} targets')
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nuget-resolved-inventory
+          path: |
+            **/obj/project.assets.json
+            **/*.csproj
+            **/packages.config
+          if-no-files-found: error
+          retention-days: 7
+
+  submit-dependencies:
+    needs: resolve-dependencies
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    runs-on: windows-2022
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+        with:
+          egress-policy: audit
+      # Same-run data only. Do not execute project code in this privileged job.
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: nuget-resolved-inventory
+      - name: Submit NuGet inventory
+        uses: advanced-security/component-detection-dependency-submission-action@a02aeda7a175ad4dd38a13c4d3ff2df9da8f2cf0 # v0.2.0
+        with:
+          detectorsCategories: NuGet
+          fail-on-empty: 'true'
+          correlator: nuget-restored-projects
