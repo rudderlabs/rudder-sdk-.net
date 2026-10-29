@@ -141,7 +141,7 @@ replace the repository's tests for all supported target frameworks.
 
   The workflow requires the intended stable release tag (`vX.Y.Z`). Dispatch from
   `master` fails before packaging. The tag must also have its matching published
-  GitHub release before full E2E acceptance can succeed. A retry loads workflow
+  GitHub release. The ref gate verifies this release before packaging or NuGet authentication. A retry loads workflow
   code stored at that tag. For tags without the workflow or fixes merged later,
   use the [current-central validation fallback](.github/RELEASE_E2E.md#retry-after-a-workflow-fix).
   Do not delete or recreate tags. A duplicate upload is not a new publication.

@@ -6,7 +6,7 @@ Acceptance starts only after the existing publisher succeeds. Existing native bu
 
 Full source-candidate E2E before publication is a separate rollout. Do not treat native tests or this post-publication check as that gate.
 
-Existing manual publication must select a release tag. A master-branch dispatch cannot bind the uploaded artifact to a release tag and is no longer a publication path.
+Existing manual publication must select a release tag with a matching published stable GitHub release. The ref gate checks the release before packaging or NuGet authentication. A master-branch dispatch cannot bind the uploaded artifact to a release tag and is no longer a publication path.
 
 ## Validation-only retry
 

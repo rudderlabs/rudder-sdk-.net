@@ -1,5 +1,6 @@
 """Release path regressions without publishing or posting to Slack."""
 
+import io
 import json
 import os
 from pathlib import Path
@@ -9,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import validate_nuget_release_ref as release_ref
 
@@ -75,6 +77,44 @@ class PublishNugetWorkflowTests(unittest.TestCase):
         ):
             with self.subTest(tag=tag, event=event, ref_type=ref_type), self.assertRaises(ValueError):
                 release_ref.validate_ref(event, ref_type, ref_name, tag, version)
+
+    def test_manual_upload_requires_existing_published_release(self):
+        stable = {"tag_name": "v1.2.3", "draft": False, "prerelease": False,
+                  "published_at": "2026-10-29T10:00:00Z"}
+        fixtures = [stable, {**stable, "tag_name": "v1.2.4"},
+                    {**stable, "draft": True}, {**stable, "prerelease": True},
+                    {**stable, "published_at": None}]
+        for metadata in fixtures:
+            with self.subTest(metadata=metadata), patch.object(
+                release_ref, "urlopen", return_value=io.StringIO(json.dumps(metadata))
+            ) as fetch:
+                if metadata == stable:
+                    release_ref.require_published_release("rudderlabs/rudder-sdk-.net", "v1.2.3",
+                                                          "test-token", "https://api.github.com")
+                else:
+                    with self.assertRaises(ValueError):
+                        release_ref.require_published_release("rudderlabs/rudder-sdk-.net", "v1.2.3",
+                                                              "test-token", "https://api.github.com")
+                self.assertEqual(fetch.call_args.args[0].full_url,
+                                 "https://api.github.com/repos/rudderlabs/rudder-sdk-.net/releases/tags/v1.2.3")
+        with patch.object(release_ref, "urlopen", side_effect=OSError("release not found")):
+            with self.assertRaises(OSError):
+                release_ref.require_published_release("rudderlabs/rudder-sdk-.net", "v1.2.3",
+                                                      "test-token", "https://api.github.com")
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, "VERSION").write_text("1.2.3\n")
+            environment = {"GITHUB_EVENT_NAME": "workflow_dispatch", "GITHUB_REF_TYPE": "tag",
+                           "GITHUB_REF_NAME": "v1.2.3", "RELEASE_TAG": "v1.2.3",
+                           "GITHUB_REPOSITORY": "rudderlabs/rudder-sdk-.net",
+                           "GITHUB_TOKEN": "test-token", "GITHUB_API_URL": "https://api.github.com"}
+            with patch.dict(os.environ, environment), patch.object(Path, "read_text", return_value="1.2.3"), patch.object(
+                release_ref, "require_published_release", side_effect=ValueError("release missing")
+            ) as guard:
+                with self.assertRaises(ValueError):
+                    release_ref.main()
+                guard.assert_called_once()
+        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", job(PUBLISHER, "validate-ref"))
+        self.assertIn("needs: validate-ref", job(PUBLISHER, "pack"))
 
     def test_registry_then_full_e2e_then_release_only_notification(self):
         self.assertIn("needs: publish", job(PUBLISHER, "verify-publication"))
