@@ -16,8 +16,9 @@ class VerifyNuGetReleaseTests(unittest.TestCase):
             with self.subTest(version=version), self.assertRaises(ValueError):
                 verifier.validate_version(version)
 
-    def test_prerelease_is_lowercased_for_nuget(self):
-        self.assertEqual(verifier.validate_version("2.0.3-RC.1"), "2.0.3-rc.1")
+    def test_prerelease_is_rejected_before_publication(self):
+        with self.assertRaisesRegex(ValueError, "Unsupported package version"):
+            verifier.validate_version("2.0.3-beta.1", "v2.0.3-beta.1")
 
     def test_exact_version_and_download_url(self):
         fetch = Mock(side_effect=[

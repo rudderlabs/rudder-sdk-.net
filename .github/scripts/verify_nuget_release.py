@@ -14,13 +14,13 @@ PACKAGE = "rudderanalytics"
 
 
 def validate_version(version, release_tag=""):
-    # The SDK uses three-part versions, optionally with a prerelease suffix.
+    # Published-package E2E accepts only stable three-part versions.
     number = r"(?:0|[1-9][0-9]*)"
-    if not re.fullmatch(rf"{number}\.{number}\.{number}(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?", version):
+    if not re.fullmatch(rf"{number}\.{number}\.{number}", version):
         raise ValueError(f"Unsupported package version: {version!r}")
     if release_tag and release_tag != f"v{version}":
         raise ValueError(f"Release tag {release_tag!r} does not match VERSION {version!r}")
-    return version.lower()
+    return version
 
 
 def request(url, method="GET"):
