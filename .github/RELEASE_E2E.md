@@ -22,6 +22,31 @@ The retry has no upload path or publishing credential. It derives the exact vers
 
 A published package remains published if acceptance fails. The release-event Slack root reports "published; validation failed or incomplete" only after exact public NuGet verification. Earlier ref, pack, or upload failures report failed or unconfirmed publication, and a successful upload without public verification remains unconfirmed. Its non-broadcast thread reply links the NuGet version, release, and run with each job's result. Do not rerun a successful upload job to retry E2E. A successful validation-only retry does not change an earlier failed run or its notification. Record the new acceptance run in the release ticket and existing Slack release thread.
 
+## Retry after a workflow fix
+
+The retry workflow must exist on the default branch and selected release tag.
+A tag retry loads workflow code and pins stored at that tag. A fix merged later
+to master does not change that retry. For workflow fixes or older tags without
+the retry workflow, use the current central workflow. Copy the full commit SHA
+from the original release run. Replace the version, commit placeholder and request
+ID before running:
+
+```sh
+gh workflow run server-sdk-validation.yml --repo rudderlabs/rudder-sdk-e2e-tests --ref main \
+  -f selection=auto -f source_repository=rudderlabs/rudder-sdk-.net \
+  -f source_sha=RELEASE_EVENT_COMMIT_SHA -f package_version=X.Y.Z \
+  -f suite=full -f request_id=dotnet-published-X_Y_Z-retry-UNIQUE_ID
+```
+
+The central fallback cannot publish or notify. Release-run reruns also stay silent
+after the first attempt. Record new acceptance evidence in the release ticket and
+existing release thread. If notification fails, repair the existing thread separately.
+
 ## Rollout
 
-Tracked in [SDK-5969](https://linear.app/rudderstack/issue/SDK-5969). Keep this PR draft until [central PR #32](https://github.com/rudderlabs/rudder-sdk-e2e-tests/pull/32), including its committed cleanup-budget fix `52f6bf7`, and [SDK-5977](https://linear.app/rudderstack/issue/SDK-5977)'s shared workflow are reviewed and available. [SDK-5978](https://linear.app/rudderstack/issue/SDK-5978) does not make normal trusted inheritance an automatic blocker. Adopt the shared workflow only at a reviewed immutable ref. The current action pin is an existing commit from [shared-action PR #5](https://github.com/rudderlabs/github-action-sdk-e2e/pull/5) and must be verified or refreshed before merge. Hosted acceptance remains pending the next normal release. Do not create a release solely to test this wiring.
+Tracked in [SDK-5969](https://linear.app/rudderstack/issue/SDK-5969).
+The central prerequisites and shared-action v1.0.0 are merged. The caller delegates
+to the released reusable workflow at `b6de40cc65abe8ee6c6593aac1787aea746b671f`.
+It preserves native publication and registry checks. Full source-candidate E2E
+for this SDK remains a separate rollout. Hosted published acceptance will run at
+the next normal release. Do not create a release solely to test this wiring.

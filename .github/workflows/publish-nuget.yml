@@ -12,6 +12,7 @@ permissions:
 jobs:
   validate-ref:
     name: Validate publish ref
+    if: github.event.release.prerelease != true && github.event.release.draft != true
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -183,7 +184,7 @@ jobs:
   notify-slack:
     name: Report NuGet release acceptance
     needs: [validate-ref, pack, publish, verify-publication, published-e2e]
-    if: ${{ always() && github.event_name == 'release' }}
+    if: ${{ always() && github.event_name == 'release' && !github.event.release.prerelease && !github.event.release.draft && github.run_attempt == '1' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -264,7 +265,9 @@ jobs:
           PUBLIC_VERIFICATION: ${{ needs.verify-publication.result }}
           ACCEPTANCE_RESULT: ${{ needs.published-e2e.result }}
           RELEASE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CENTRAL_RUN_URL: ${{ needs.published-e2e.outputs.run-url }}
         run: |
+          jq -e '.ok == true' <<< "$SLACK_RESPONSE" >/dev/null
           thread_ts="$(jq -r '.ts // empty' <<< "$SLACK_RESPONSE")"
           if [[ ! "$thread_ts" =~ ^[0-9]+\.[0-9]+$ ]]; then
             echo 'Slack root response did not include a thread timestamp.' >&2
@@ -277,16 +280,18 @@ jobs:
             --arg version "$version" \
             --arg tag "$RELEASE_TAG" \
             --arg run_url "$RELEASE_RUN_URL" \
+            --arg central "$CENTRAL_RUN_URL" \
             --arg ref "$REF_RESULT" \
             --arg pack "$PACK_RESULT" \
             --arg publish "$PUBLISH_RESULT" \
             --arg public "$PUBLIC_VERIFICATION" \
             --arg acceptance "$ACCEPTANCE_RESULT" \
             '{channel: $channel, thread_ts: $thread_ts, reply_broadcast: false, unfurl_links: false, unfurl_media: false,
-              text: ("<https://www.nuget.org/packages/RudderAnalytics/" + $version + "|NuGet version> | <https://github.com/rudderlabs/rudder-sdk-.net/releases/tag/" + $tag + "|Release notes> | <" + $run_url + "|Release checks>\nRelease ref: " + $ref + " | Pack: " + $pack + " | NuGet publish: " + $publish + "\nExact public registry artifact: " + $public + "\nFull E2E delivery and cleanup: " + $acceptance)}' \
+              text: ("<https://www.nuget.org/packages/RudderAnalytics/" + $version + "|NuGet version> | <https://github.com/rudderlabs/rudder-sdk-.net/releases/tag/" + $tag + "|Release notes> | <" + $run_url + "|Release checks>\nRelease ref: " + $ref + " | Pack: " + $pack + " | NuGet publish: " + $publish + "\nExact public registry artifact: " + $public + "\nFull E2E delivery and cleanup: " + $acceptance + (if $central != "" then "\n<" + $central + "|Central E2E run>" else "" end))}' \
             > "$RUNNER_TEMP/nuget-release-thread.json"
 
       - name: Reply with release checks
+        id: slack_reply
         if: steps.prepare_thread.outcome == 'success'
         uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         continue-on-error: true
@@ -296,3 +301,15 @@ jobs:
           errors: true
           retries: rapid
           payload-file-path: ${{ runner.temp }}/nuget-release-thread.json
+
+      - name: Require confirmed release notification
+        if: always()
+        env:
+          ROOT_RESULT: ${{ steps.slack_root.outcome }}
+          THREAD_RESULT: ${{ steps.prepare_thread.outcome }}
+          REPLY_RESULT: ${{ steps.slack_reply.outcome }}
+        run: |
+          if [[ "$ROOT_RESULT" != success || "$THREAD_RESULT" != success || "$REPLY_RESULT" != success ]]; then
+            echo 'Release notification failed or was not confirmed. Publication and acceptance remain recorded above.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

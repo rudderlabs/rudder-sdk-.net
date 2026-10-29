@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -82,7 +83,9 @@ class PublishNugetWorkflowTests(unittest.TestCase):
         self.assertIn("needs.verify-publication.outputs.version", acceptance)
         notification = job(PUBLISHER, "notify-slack")
         self.assertIn("needs: [validate-ref, pack, publish, verify-publication, published-e2e]", notification)
-        self.assertIn("if: ${{ always() && github.event_name == 'release' }}", notification)
+        self.assertIn("github.run_attempt == '1'", notification)
+        self.assertIn("github.event_name == 'release'", notification)
+        self.assertIn("!github.event.release.prerelease", notification)
         self.assertIn("published; validation failed or incomplete", notification)
         self.assertIn("date -u +%Y-%m-%d", notification)
         self.assertIn("<!subteam^S03SW7DM8P3>", notification)
@@ -92,6 +95,7 @@ class PublishNugetWorkflowTests(unittest.TestCase):
 
         retry = job(E2E, "validate")
         self.assertRegex(retry, r"uses: rudderlabs/github-action-sdk-e2e/\.github/workflows/published-sdk-e2e\.yml@[0-9a-f]{40}")
+        self.assertIn("@b6de40cc65abe8ee6c6593aac1787aea746b671f", retry)
         self.assertNotIn("steps:", retry)
         self.assertIn("package-version: ${{ inputs.package-version || github.ref_name }}", retry)
         self.assertIn("release-app-client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}", retry)
@@ -100,6 +104,7 @@ class PublishNugetWorkflowTests(unittest.TestCase):
         self.assertNotIn("dotnet nuget push", E2E)
         self.assertNotIn("slack-github-action", E2E)
 
+    @unittest.skipUnless(shutil.which("bash") and shutil.which("jq"), "workflow scripts need Bash and jq")
     def test_final_notifications_distinguish_negative_outcomes(self):
         notification = job(PUBLISHER, "notify-slack")
         summary_script = run_step(notification, "Record publication and acceptance separately")
@@ -121,7 +126,8 @@ class PublishNugetWorkflowTests(unittest.TestCase):
                 environment.update(RUNNER_TEMP=directory, GITHUB_STEP_SUMMARY=str(Path(directory, "summary")),
                                    SLACK_CHANNEL_ID="C123", RELEASE_TAG="v1.2.3",
                                    SLACK_RESPONSE='{"ok":true,"ts":"1234567890.123456"}',
-                                   RELEASE_RUN_URL="https://github.com/rudderlabs/rudder-sdk-.net/actions/runs/123")
+                                   RELEASE_RUN_URL="https://github.com/rudderlabs/rudder-sdk-.net/actions/runs/123",
+                                   CENTRAL_RUN_URL="https://github.com/rudderlabs/rudder-sdk-e2e-tests/actions/runs/456")
                 for script in (summary_script, root_script, thread_script):
                     subprocess.run(["bash", "-e", "-c", script], env=environment,
                                    capture_output=True, text=True, check=True)
@@ -133,6 +139,7 @@ class PublishNugetWorkflowTests(unittest.TestCase):
                 self.assertRegex(root["text"], r"\.NET SDK v1\.2\.3 \| \d{4}-\d{2}-\d{2} \|")
                 self.assertIn("<!subteam^S03SW7DM8P3>", root["text"])
                 self.assertEqual(thread["thread_ts"], "1234567890.123456")
+                self.assertIn(environment["CENTRAL_RUN_URL"], thread["text"])
                 self.assertFalse(thread["reply_broadcast"])
                 self.assertFalse(thread["unfurl_links"])
                 self.assertFalse(thread["unfurl_media"])
@@ -144,6 +151,29 @@ class PublishNugetWorkflowTests(unittest.TestCase):
                     self.assertIn("remains published", summary)
                 else:
                     self.assertNotIn("remains published", summary)
+
+    @unittest.skipUnless(shutil.which("bash") and shutil.which("jq"), "workflow scripts need Bash and jq")
+    def test_unconfirmed_root_cannot_start_a_thread(self):
+        script = run_step(job(PUBLISHER, "notify-slack"), "Prepare release details thread")
+        for response in ('{"ok":false,"ts":"123.456"}', '{"ok":true}', '{"ok":true,"ts":"invalid"}'):
+            with self.subTest(response=response), tempfile.TemporaryDirectory() as directory:
+                result = subprocess.run(
+                    ["bash", "-e", "-c", script], env={**os.environ, "RUNNER_TEMP": directory,
+                    "SLACK_RESPONSE": response}, capture_output=True, text=True, check=False)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(Path(directory, "nuget-release-thread.json").exists())
+
+    @unittest.skipUnless(shutil.which("bash"), "workflow script needs Bash")
+    def test_notification_errors_remain_visible_after_best_effort_delivery(self):
+        script = run_step(job(PUBLISHER, "notify-slack"), "Require confirmed release notification")
+        for outcomes in (('success', 'success', 'success'), ('failure', 'skipped', 'skipped'),
+                         ('success', 'failure', 'skipped'), ('success', 'success', 'failure')):
+            with self.subTest(outcomes=outcomes), tempfile.TemporaryDirectory() as directory:
+                env = {**os.environ, "GITHUB_STEP_SUMMARY": str(Path(directory, "summary"))}
+                env.update(zip(('ROOT_RESULT', 'THREAD_RESULT', 'REPLY_RESULT'), outcomes))
+                result = subprocess.run(["bash", "-e", "-c", script], env=env,
+                                        capture_output=True, text=True, check=False)
+                self.assertEqual(result.returncode == 0, all(value == 'success' for value in outcomes))
 
 
 if __name__ == "__main__":
