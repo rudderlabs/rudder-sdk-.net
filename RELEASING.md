@@ -69,7 +69,8 @@ incomplete" instead. A ref, pack, or upload failure reports failed or
 unconfirmed publication. A successful upload without exact public registry
 verification remains unconfirmed. Each release-event notification has a short
 root and a thread reply containing package, release, run links, and check
-results. Manual validation-only retries do not announce a release.
+results. Only the first release attempt sends notifications. Manual validation-only
+retries and later release attempts do not announce a release.
 Verification polls every 30 seconds for up to one hour, with 15-second request
 timeouts. Request time counts toward the retry deadline; an in-flight check can
 finish just after it. The job has a 65-minute limit to allow setup and notification.
@@ -79,9 +80,9 @@ mean the package is already indexed. If verification fails after the retry windo
 the workflow fails without a success message. Check NuGet's package validation
 status and service status before rerunning only the failed verification job.
 Manual validation/recovery dispatches verify availability but do not announce a
-new release. Rerunning a published-release event can send the notification again.
-Slack delivery is best-effort and does not roll back a published package. Check
-the notification step if no message arrives. Registry verification does not
+new release. Later attempts of a published-release event stay silent. Notification
+failures fail the notification job without changing the published package. Check
+the job summary and repair the existing release thread separately. Registry verification does not
 replace the signature and clean-consumer checks below.
 
 Tag pushes alone do not start the publishing workflow. Release Please uses a
@@ -138,10 +139,12 @@ replace the repository's tests for all supported target frameworks.
     --repo rudderlabs/rudder-sdk-.net --ref vX.Y.Z
   ```
 
-  The workflow also permits dispatch from `master`. This builds the version
-  currently on that branch, which may already exist on NuGet. It must not be
-  mistaken for a new release or a full publishing test when `--skip-duplicate`
-  skips the upload. Tags created before the workflow was added cannot run it.
+  The workflow requires the intended stable release tag (`vX.Y.Z`). Dispatch from
+  `master` fails before packaging. The tag must also have its matching published
+  GitHub release before full E2E acceptance can succeed. A retry loads workflow
+  code stored at that tag. For tags without the workflow or fixes merged later,
+  use the [current-central validation fallback](.github/RELEASE_E2E.md#retry-after-a-workflow-fix).
+  Do not delete or recreate tags. A duplicate upload is not a new publication.
 
 - **A version already exists:** inspect the existing package. NuGet versions
   cannot be overwritten. Publish a new patch version for package defects; do not
