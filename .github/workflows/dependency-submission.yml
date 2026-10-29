@@ -11,6 +11,8 @@ on:
       - '**/NuGet.Config'
       - '**/nuget.config'
       - 'global.json'
+      - '.github/scripts/check_nuget_assets.py'
+      - '.github/scripts/test_check_nuget_assets.py'
       - '.github/workflows/dependency-submission.yml'
   pull_request:
     paths:
@@ -21,6 +23,8 @@ on:
       - '**/NuGet.Config'
       - '**/nuget.config'
       - 'global.json'
+      - '.github/scripts/check_nuget_assets.py'
+      - '.github/scripts/test_check_nuget_assets.py'
       - '.github/workflows/dependency-submission.yml'
   schedule:
     - cron: '39 6 * * 1'
@@ -47,10 +51,11 @@ jobs:
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
           dotnet-version: '8.0.x'
+      - name: Test inventory validation
+        run: python .github/scripts/test_check_nuget_assets.py
       - name: Restore and check every SDK-style project
         shell: python
         run: |
-          import json
           from pathlib import Path
           import subprocess
           import xml.etree.ElementTree as ET
@@ -73,15 +78,7 @@ jobs:
                       raise SystemExit(f'Unclassified legacy project: {project}')
                   continue
               subprocess.run(['dotnet', 'restore', str(project), '--force'], check=True)
-              assets = json.loads((project.parent / 'obj/project.assets.json').read_text())
-              frameworks = [e.text for e in root.iter() if e.tag in ('TargetFramework', 'TargetFrameworks')]
-              expected = set(';'.join(frameworks).split(';'))
-              if not expected.issubset(assets['project']['frameworks']):
-                  raise SystemExit(f'Missing target framework inventory: {project}')
-              packages = [p for p in assets['libraries'].values() if p['type'] == 'package']
-              if not packages or not assets['targets']:
-                  raise SystemExit(f'Empty restore inventory: {project}')
-              print(f'{project}: {len(packages)} packages, {len(assets["targets"])} targets')
+              subprocess.run(['python', '.github/scripts/check_nuget_assets.py', str(project)], check=True)
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: nuget-resolved-inventory
