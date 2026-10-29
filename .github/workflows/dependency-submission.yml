@@ -55,17 +55,22 @@ jobs:
           import subprocess
           import xml.etree.ElementTree as ET
 
-          # Legacy packages.config projects remain visible to the NuGet detector.
-          legacy = {'Test.Net35/Test.Net35.csproj', 'Test.UniversalApp/Test.UniversalApp.csproj'}
+          legacy_packages_config = 'Test.Net35/Test.Net35.csproj'
+          excluded_package_reference = 'Test.UniversalApp/Test.UniversalApp.csproj'
           projects = list(Path('.').rglob('*.csproj'))
           if not projects:
               raise SystemExit('No projects found')
           for project in projects:
               root = ET.parse(project).getroot()
               if not root.get('Sdk'):
-                  if project.as_posix() not in legacy:
+                  if project.as_posix() == legacy_packages_config:
+                      if not (project.parent / 'packages.config').is_file():
+                          raise SystemExit(f'Missing packages.config: {project}')
+                      print(f'Legacy packages.config detector input: {project}')
+                  elif project.as_posix() == excluded_package_reference:
+                      print(f'Excluded from resolved coverage (legacy PackageReference): {project}')
+                  else:
                       raise SystemExit(f'Unclassified legacy project: {project}')
-                  print(f'Legacy packages.config inventory: {project}')
                   continue
               subprocess.run(['dotnet', 'restore', str(project), '--force'], check=True)
               assets = json.loads((project.parent / 'obj/project.assets.json').read_text())
