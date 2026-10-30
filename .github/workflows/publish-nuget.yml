@@ -12,6 +12,7 @@ permissions:
 jobs:
   validate-ref:
     name: Validate publish ref
+    if: github.event.release.prerelease != true && github.event.release.draft != true
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -22,23 +23,16 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Confirm manual dispatch ref
-        shell: bash
-        run: |
-          if [[ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]]; then
-            exit 0
-          fi
+      - name: Checkout the release ref
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
 
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            exit 0
-          fi
-
-          if [[ "${GITHUB_REF_NAME}" == "master" ]]; then
-            exit 0
-          fi
-
-          echo "Manual publishing is only allowed from tags or master."
-          exit 1
+      - name: Reject unsupported versions before upload
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/validate_nuget_release_ref.py
 
   pack:
     name: Pack RudderAnalytics
@@ -78,6 +72,23 @@ jobs:
           --configuration Release
           --no-build
           --output artifacts
+
+      - name: Check packed version matches the release tag
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem artifacts -Filter '*.nupkg' -File)
+          if ($packages.Count -ne 1) { throw 'Expected exactly one package.' }
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($packages[0].FullName)
+          try {
+            $entry = @($archive.Entries | Where-Object FullName -like '*.nuspec')
+            if ($entry.Count -ne 1) { throw 'Expected exactly one package manifest.' }
+            $reader = [System.IO.StreamReader]::new($entry[0].Open())
+            try { [xml]$manifest = $reader.ReadToEnd() } finally { $reader.Dispose() }
+            $version = $manifest.package.metadata.version
+            if ($env:GITHUB_REF_NAME -cne "v$version") {
+              throw 'Packed package version does not match the selected release tag.'
+            }
+          } finally { $archive.Dispose() }
 
       - name: Upload package artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -133,8 +144,10 @@ jobs:
             --skip-duplicate
           exit $LASTEXITCODE
 
-  verify-and-notify:
-    name: Verify NuGet availability and notify Slack
+  verify-publication:
+    name: Verify NuGet availability
+    outputs:
+      version: ${{ steps.verify.outputs.version }}
     needs: publish
     runs-on: ubuntu-latest
     timeout-minutes: 65
@@ -154,23 +167,82 @@ jobs:
       - name: Verify the exact package on NuGet
         id: verify
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
         run: python3 .github/scripts/verify_nuget_release.py
 
+
+  published-e2e:
+    name: Accept exact published package
+    needs: verify-publication
+    permissions:
+      contents: read
+    uses: ./.github/workflows/published-sdk-e2e.yml
+    with:
+      package-version: ${{ needs.verify-publication.outputs.version }}
+    secrets:
+      RELEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PRIVATE_KEY }}
+
+  notify-slack:
+    name: Report NuGet release acceptance
+    needs: [validate-ref, pack, publish, verify-publication, published-e2e]
+    if: ${{ always() && github.event_name == 'release' && !github.event.release.prerelease && !github.event.release.draft && github.run_attempt == '1' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Record publication and acceptance separately
+        env:
+          REF_RESULT: ${{ needs.validate-ref.result }}
+          PACK_RESULT: ${{ needs.pack.result }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+          PUBLIC_VERIFICATION: ${{ needs.verify-publication.result }}
+          ACCEPTANCE_RESULT: ${{ needs.published-e2e.result }}
+        run: |
+          echo "Release ref: $REF_RESULT. Pack: $PACK_RESULT. NuGet publish: $PUBLISH_RESULT. Public registry: $PUBLIC_VERIFICATION. Published-package E2E: $ACCEPTANCE_RESULT." >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$PUBLIC_VERIFICATION" == success && "$ACCEPTANCE_RESULT" != success ]]; then
+            echo 'The publicly verified package remains published. Retry published-sdk-e2e.yml at the same release tag.' >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$PUBLIC_VERIFICATION" != success ]]; then
+            echo 'Publication is not confirmed by the exact public registry check. Investigate before retrying any upload.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Prepare release notification
-        if: github.event_name == 'release'
         env:
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_RELEASE_CHANNEL_ID }}
-          RELEASE_VERSION: ${{ steps.verify.outputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REF_RESULT: ${{ needs.validate-ref.result }}
+          PACK_RESULT: ${{ needs.pack.result }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+          PUBLIC_VERIFICATION: ${{ needs.verify-publication.result }}
+          ACCEPTANCE_RESULT: ${{ needs.published-e2e.result }}
         run: |
+          version="${RELEASE_TAG#v}"
+          release_date="$(date -u +%Y-%m-%d)"
+          if [[ "$PUBLIC_VERIFICATION" == success && "$ACCEPTANCE_RESULT" == success ]]; then
+            status='released; validation complete'
+          elif [[ "$PUBLIC_VERIFICATION" == success ]]; then
+            status='published; validation failed or incomplete'
+          elif [[ "$REF_RESULT" != success || "$PACK_RESULT" != success ]]; then
+            status='publication failed before upload'
+          elif [[ "$PUBLISH_RESULT" != success ]]; then
+            status='publication failed or unconfirmed'
+          else
+            status='publication unconfirmed; validation incomplete'
+          fi
           jq -n \
             --arg channel "$SLACK_CHANNEL_ID" \
-            --arg version "$RELEASE_VERSION" \
-            '{channel: $channel, text: (".NET SDK " + $version + " is available on NuGet: <https://www.nuget.org/packages/RudderAnalytics/" + $version + "|RudderAnalytics " + $version + ">\n<https://github.com/rudderlabs/rudder-sdk-.net/releases/tag/v" + $version + "|Release notes>\nCC: <!subteam^S03SW7DM8P3>"), unfurl_links: false, unfurl_media: false}' \
+            --arg version "$version" \
+            --arg date "$release_date" \
+            --arg status "$status" \
+            '{channel: $channel, text: (".NET SDK v" + $version + " | " + $date + " | " + $status + " | <!subteam^S03SW7DM8P3>"), unfurl_links: false, unfurl_media: false}' \
             > "$RUNNER_TEMP/nuget-release-notification.json"
 
-      - name: Notify Slack of verified NuGet publication
-        if: github.event_name == 'release'
+      - name: Notify Slack of publication status
+        id: slack_root
         uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         continue-on-error: true
         with:
@@ -179,3 +251,66 @@ jobs:
           errors: true
           retries: rapid
           payload-file-path: ${{ runner.temp }}/nuget-release-notification.json
+
+      - name: Prepare release details thread
+        id: prepare_thread
+        if: steps.slack_root.outcome == 'success'
+        continue-on-error: true
+        env:
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_RELEASE_CHANNEL_ID }}
+          SLACK_RESPONSE: ${{ steps.slack_root.outputs.response }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REF_RESULT: ${{ needs.validate-ref.result }}
+          PACK_RESULT: ${{ needs.pack.result }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+          PUBLIC_VERIFICATION: ${{ needs.verify-publication.result }}
+          ACCEPTANCE_RESULT: ${{ needs.published-e2e.result }}
+          RELEASE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CENTRAL_RUN_URL: ${{ needs.published-e2e.outputs.run-url }}
+        run: |
+          jq -e '.ok == true' <<< "$SLACK_RESPONSE" >/dev/null
+          thread_ts="$(jq -r '.ts // empty' <<< "$SLACK_RESPONSE")"
+          if [[ ! "$thread_ts" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo 'Slack root response did not include a thread timestamp.' >&2
+            exit 1
+          fi
+          version="${RELEASE_TAG#v}"
+          jq -n \
+            --arg channel "$SLACK_CHANNEL_ID" \
+            --arg thread_ts "$thread_ts" \
+            --arg version "$version" \
+            --arg tag "$RELEASE_TAG" \
+            --arg run_url "$RELEASE_RUN_URL" \
+            --arg central "$CENTRAL_RUN_URL" \
+            --arg ref "$REF_RESULT" \
+            --arg pack "$PACK_RESULT" \
+            --arg publish "$PUBLISH_RESULT" \
+            --arg public "$PUBLIC_VERIFICATION" \
+            --arg acceptance "$ACCEPTANCE_RESULT" \
+            '{channel: $channel, thread_ts: $thread_ts, reply_broadcast: false, unfurl_links: false, unfurl_media: false,
+              text: ("<https://www.nuget.org/packages/RudderAnalytics/" + $version + "|NuGet version> | <https://github.com/rudderlabs/rudder-sdk-.net/releases/tag/" + $tag + "|Release notes> | <" + $run_url + "|Release checks>\nRelease ref: " + $ref + " | Pack: " + $pack + " | NuGet publish: " + $publish + "\nExact public registry artifact: " + $public + "\nFull E2E delivery and cleanup: " + $acceptance + (if $central != "" then "\n<" + $central + "|Central E2E run>" else "" end))}' \
+            > "$RUNNER_TEMP/nuget-release-thread.json"
+
+      - name: Reply with release checks
+        id: slack_reply
+        if: steps.prepare_thread.outcome == 'success'
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        continue-on-error: true
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          errors: true
+          retries: rapid
+          payload-file-path: ${{ runner.temp }}/nuget-release-thread.json
+
+      - name: Require confirmed release notification
+        if: always()
+        env:
+          ROOT_RESULT: ${{ steps.slack_root.outcome }}
+          THREAD_RESULT: ${{ steps.prepare_thread.outcome }}
+          REPLY_RESULT: ${{ steps.slack_reply.outcome }}
+        run: |
+          if [[ "$ROOT_RESULT" != success || "$THREAD_RESULT" != success || "$REPLY_RESULT" != success ]]; then
+            echo 'Release notification failed or was not confirmed. Publication and acceptance remain recorded above.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
