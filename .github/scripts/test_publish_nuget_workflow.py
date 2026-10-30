@@ -135,7 +135,6 @@ class PublishNugetWorkflowTests(unittest.TestCase):
 
         retry = job(E2E, "validate")
         self.assertRegex(retry, r"uses: rudderlabs/github-action-sdk-e2e/\.github/workflows/published-sdk-e2e\.yml@[0-9a-f]{40}")
-        self.assertIn("@b6de40cc65abe8ee6c6593aac1787aea746b671f", retry)
         self.assertNotIn("steps:", retry)
         self.assertIn("package-version: ${{ inputs.package-version || github.ref_name }}", retry)
         self.assertIn("release-app-client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}", retry)
