@@ -84,7 +84,7 @@ namespace RudderStack
 
             if (config.Async)
             {
-                _flushHandler = new AsyncIntervalFlushHandler(batchFactory, requestHandler, config.MaxQueueSize, config.FlushAt, config.FlushIntervalInMillis, config.Threads);
+                _flushHandler = new AsyncIntervalFlushHandler(batchFactory, requestHandler, config.MaxQueueSize, config.FlushAt, config.FlushIntervalInMillis, config.Threads, RaiseFailure);
             }
             else
                 _flushHandler = new BlockingFlushHandler(batchFactory, requestHandler);
@@ -359,6 +359,7 @@ namespace RudderStack
 
         internal void RaiseFailure(BaseAction action, System.Exception e)
         {
+            Statistics.IncrementFailed();
             if (Failed != null) Failed(action, e);
         }
 

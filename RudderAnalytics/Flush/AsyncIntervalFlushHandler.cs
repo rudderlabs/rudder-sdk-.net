@@ -1,5 +1,6 @@
 using RudderStack.Model;
 using RudderStack.Request;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
@@ -24,6 +25,7 @@ namespace RudderStack.Flush
         private readonly int _maxBatchSize;
         private readonly IBatchFactory _batchFactory;
         private readonly IRequestHandler _requestHandler;
+        private readonly FailedHandler _onFailure;
         private readonly int _maxQueueSize;
         private readonly CancellationTokenSource _continue;
         private readonly int _flushIntervalInMillis;
@@ -36,11 +38,13 @@ namespace RudderStack.Flush
             int maxQueueSize,
             int maxBatchSize,
             int flushIntervalInMillis,
-            int threads)
+            int threads,
+            FailedHandler onFailure = null)
         {
             _queue = new ConcurrentQueue<BaseAction>();
             _batchFactory = batchFactory;
             _requestHandler = requestHandler;
+            _onFailure = onFailure;
             _maxQueueSize = maxQueueSize;
             _maxBatchSize = maxBatchSize;
             _continue = new CancellationTokenSource();
@@ -145,6 +149,7 @@ namespace RudderStack.Flush
             if (action.Size > ActionMaxSize)
             {
                 Logger.Error($"Action was dropped cause is bigger than {ActionMaxSize} bytes");
+                _onFailure?.Invoke(action, new ArgumentException($"Action exceeds {ActionMaxSize} bytes"));
                 return;
             }
 
