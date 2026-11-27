@@ -75,6 +75,33 @@ namespace RudderStack.Test
             Assert.AreEqual(0, RudderAnalytics.Client.Statistics.Failed);
         }
 
+        [Test]
+        public void AsynchronousFlushReportsAnOversizedAction()
+        {
+            using (var client = new RudderClient("test-key", new RudderConfig().SetSend(false)))
+            {
+                var failures = new List<BaseAction>();
+                var errors = new List<System.Exception>();
+                client.Failed += (action, error) =>
+                {
+                    failures.Add(action);
+                    errors.Add(error);
+                    throw new InvalidOperationException("handler error");
+                };
+
+                client.Track("test-user", "oversized", new Dict { { "value", new string('x', 32 * 1024) } });
+                client.Track("test-user", "valid");
+                client.Flush();
+
+                Assert.AreEqual(2, client.Statistics.Submitted);
+                Assert.AreEqual(1, client.Statistics.Failed);
+                Assert.AreEqual(1, client.Statistics.Succeeded);
+                Assert.That(failures, Has.Count.EqualTo(1));
+                Assert.That(((Track)failures[0]).EventName, Is.EqualTo("oversized"));
+                Assert.That(errors[0], Is.TypeOf<ArgumentException>());
+            }
+        }
+
         [Test()]
         public async Task PerformanceTest()
         {

@@ -400,7 +400,6 @@ namespace RudderStack.Request
         {
             foreach (BaseAction action in batch.batch)
             {
-                _client.Statistics.IncrementFailed();
                 _client.RaiseFailure(action, e);
             }
 
