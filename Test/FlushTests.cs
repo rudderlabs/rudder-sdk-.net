@@ -86,6 +86,7 @@ namespace RudderStack.Test
                 {
                     failures.Add(action);
                     errors.Add(error);
+                    throw new InvalidOperationException("handler error");
                 };
 
                 client.Track("test-user", "oversized", new Dict { { "value", new string('x', 32 * 1024) } });

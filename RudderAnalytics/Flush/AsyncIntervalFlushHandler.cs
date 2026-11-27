@@ -149,7 +149,18 @@ namespace RudderStack.Flush
             if (action.Size > ActionMaxSize)
             {
                 Logger.Error($"Action was dropped cause is bigger than {ActionMaxSize} bytes");
-                _onFailure?.Invoke(action, new ArgumentException($"Action exceeds {ActionMaxSize} bytes"));
+                try
+                {
+                    _onFailure?.Invoke(action, new ArgumentException($"Action exceeds {ActionMaxSize} bytes"));
+                }
+                catch (System.Exception exception)
+                {
+                    Logger.Error("Failure handler threw while reporting an oversized action", new Dict
+                    {
+                        { "message id", action.MessageId },
+                        { "exception type", exception.GetType().Name }
+                    });
+                }
                 return;
             }
 
