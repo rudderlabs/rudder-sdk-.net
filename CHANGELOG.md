@@ -1,5 +1,25 @@
 #
 
+## [2.0.4](https://github.com/rudderlabs/rudder-sdk-.net/compare/v2.0.3...v2.0.4) (2026-11-27)
+
+
+### Bug Fixes
+
+* report oversized event failures ([#62](https://github.com/rudderlabs/rudder-sdk-.net/issues/62)) ([9b26f0d](https://github.com/rudderlabs/rudder-sdk-.net/commit/9b26f0dd6e495e4d965b3243b82820f5afdde2b2))
+
+
+### Miscellaneous
+
+* allow for nuget indexing delays ([#51](https://github.com/rudderlabs/rudder-sdk-.net/issues/51)) ([ba70edc](https://github.com/rudderlabs/rudder-sdk-.net/commit/ba70edc0ed4b2d3135faef1948016dd81300008e))
+* apply security-first dependabot policy ([#53](https://github.com/rudderlabs/rudder-sdk-.net/issues/53)) ([1906d2f](https://github.com/rudderlabs/rudder-sdk-.net/commit/1906d2f443f86adf5f86ed27c681aa392175816d))
+* **deps:** pin regex package in netstandard20 tests ([f4bd305](https://github.com/rudderlabs/rudder-sdk-.net/commit/f4bd305990d8f856a7b89b8c31efec9ea7ec9c42))
+* move the PR title check to check-pr-title v2.0.3 ([#54](https://github.com/rudderlabs/rudder-sdk-.net/issues/54)) ([5cec5c1](https://github.com/rudderlabs/rudder-sdk-.net/commit/5cec5c16cff4d1221f0ce043e9c0d270644af976))
+* sdk-5986 run full live e2e on release prs ([#59](https://github.com/rudderlabs/rudder-sdk-.net/issues/59)) ([ccd882b](https://github.com/rudderlabs/rudder-sdk-.net/commit/ccd882b83954fac9ad6440bb03f4f9de876b7503))
+* sdk-7179 import dotnet test coverage into sonarcloud ([#63](https://github.com/rudderlabs/rudder-sdk-.net/issues/63)) ([796da72](https://github.com/rudderlabs/rudder-sdk-.net/commit/796da72c7b0aed6ecc393a8b23310ac12230a6ed))
+* sdk-7217 update e2e action pin ([#61](https://github.com/rudderlabs/rudder-sdk-.net/issues/61)) ([194497f](https://github.com/rudderlabs/rudder-sdk-.net/commit/194497f993ea27a84407a63159709bb9eb493d48))
+* validate the exact published nuget package ([#55](https://github.com/rudderlabs/rudder-sdk-.net/issues/55)) ([548aba6](https://github.com/rudderlabs/rudder-sdk-.net/commit/548aba67641dd2cf59c78414af770cbe522e9a00))
+* verify published e2e with per-run cleanup ([#57](https://github.com/rudderlabs/rudder-sdk-.net/issues/57)) ([99d19c4](https://github.com/rudderlabs/rudder-sdk-.net/commit/99d19c4075e0412e58138ccaad2d8c5b687edbb1))
+
 ## [2.0.3](https://github.com/rudderlabs/rudder-sdk-.net/compare/v2.0.2...v2.0.3) (2026-09-25)
 
 
